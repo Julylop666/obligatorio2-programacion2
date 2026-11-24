@@ -60,9 +60,21 @@ COLORES = {
     "nariz": (176, 98, 70),           # nariz y orejas en marrón tostado (en vez de rosado)
     "rojo_suave": (214, 110, 80),     # termómetro caliente
     "planta": (150, 205, 150),
+    "planta_oscura": (112, 168, 120),
+    "papel_rayas": (190, 217, 207),   # rayas del papel tapiz
+    "cortina": (126, 182, 170),
+    "cielo": (176, 212, 238),
+    "cielo_claro": (212, 233, 242),
+    "sol": (255, 240, 190),
+    "nube": (255, 250, 245),
+    "lampara": (255, 220, 120),
+    "pizarron": (70, 86, 80),
+    "tiza": (236, 240, 232),
+    "mimbre": (224, 186, 142),        # individual de mimbre debajo del plato
+    "mimbre_oscuro": (196, 150, 110),
+    "servilleta": (190, 217, 207),
 }
 COLOR_DON_SALMON = (236, 150, 118)
-COLOR_BARISTA = (240, 170, 100)       # el gato naranja del juego anterior
 COLOR_OJOS = (50, 35, 45)
 COLOR_OJOS_BARISTA = (78, 150, 110)
 COLOR_VELO = (62, 42, 50, 160)        # velo oscuro con transparencia (pausa y "Mostrá la pata")
@@ -70,7 +82,7 @@ COLOR_GUIA = (255, 244, 222, 190)     # puntitos del contorno guía (tenues, con
 
 # ---------------------------------------------------------------- pixel art
 PX = 4                    # tamaño de un "pixel del arte" en pantalla
-PX_GATO = 5               # Don Salmón en el panel del jurado
+PX_GATO = 6               # Don Salmón en el panel del jurado (como en Purr & Brew)
 PX_JARRA = 5              # la jarrita de leche
 
 # ---------------------------------------------------------------- la taza (en pixeles del arte)
@@ -111,8 +123,8 @@ TOLERANCIA_SIN_MANO = 0.3 # segundos sin mano antes de mostrar el cartel (evita 
 ZONA_JARRA = (30, 50, 600, 580)
 
 # miniatura de la cámara
-TAM_MINIATURA = (240, 180)
-POS_MINIATURA = (680, 24)
+TAM_MINIATURA = (224, 168)
+POS_MINIATURA = (688, 24)
 PIXEL_MINIATURA = 3       # la imagen de la cámara también se pixela, para que combine
 TAM_CAMARA_INSTRUCCIONES = (384, 288)
 POS_CAMARA_INSTRUCCIONES = (48, 150)
@@ -135,26 +147,41 @@ ANGULO_VERTER = 32        # grados que se inclina la jarra al verter
 PENALIZACION_FUERA = 0.4
 UMBRALES_ESTRELLAS = (40, 60, 80)   # % para 1, 2 y 3 estrellas (1 estrella = pasás la ronda)
 LIMITE_DESBORDE = 1.0     # perdés si la leche afuera del dibujo ya ocupa lo mismo que el dibujo entero
-UMBRAL_ASCO = 0.30        # Don Salmón pone cara de asco si lo de afuera pasa el 30% del dibujo
 CUENTA_REGRESIVA = 3      # segundos de "3, 2, 1" antes de cada ronda (para acomodar la mano)
 TIEMPO_SERVIR = 1.5       # con 3 estrellas, si dejás de verter este tiempo, la taza se sirve sola
 
-# Las 4 rondas del concurso, de la más fácil a la más difícil.
+# Las 5 rondas del concurso, en el orden en que aprenden los baristas de verdad:
+# corazón -> tulipán (círculos apilados) -> rosetta (hoja con capas) -> cisne -> cara de gato.
 # tiempo = segundos hasta que el café se enfría; leche = cantidad de gotas de la jarra.
 RONDAS = [
     {"dibujo": "corazon", "nombre": "Corazón", "tiempo": 60, "leche": 900},
     {"dibujo": "tulipan", "nombre": "Tulipán", "tiempo": 65, "leche": 950},
-    {"dibujo": "rosetta", "nombre": "Rosetta", "tiempo": 70, "leche": 1000},
-    {"dibujo": "gato", "nombre": "Cara de gato", "tiempo": 75, "leche": 1150},
+    {"dibujo": "rosetta", "nombre": "Rosetta", "tiempo": 75, "leche": 1100},
+    {"dibujo": "cisne", "nombre": "Cisne", "tiempo": 75, "leche": 1050},
+    {"dibujo": "gato", "nombre": "Cara de gato", "tiempo": 80, "leche": 1150},
 ]
+
+# ---------------------------------------------------------------- jugador: nombre, gato y top
+PELAJES = [                                # los mismos 4 gatos de Purr & Brew (nombre, color)
+    ("Naranja", (240, 170, 100)),
+    ("Gris", (172, 178, 190)),
+    ("Crema", (246, 226, 192)),
+    ("Negro", (78, 72, 84)),
+]
+LARGO_MAXIMO_NOMBRE = 12
+RUTA_PUNTAJES = os.path.join(RUTA_BASE, "puntajes.json")
+CANTIDAD_TOP = 8                          # cuántos puestos se muestran en el top
 
 # ---------------------------------------------------------------- estados del juego
 PORTADA = "PORTADA"
+NOMBRE = "NOMBRE"
+ELEGIR_GATO = "ELEGIR_GATO"
 INSTRUCCIONES = "INSTRUCCIONES"
 JUGANDO = "JUGANDO"
 RESULTADO_RONDA = "RESULTADO_RONDA"
 VICTORIA = "VICTORIA"
 DERROTA = "DERROTA"
+TOP = "TOP"
 SIN_CAMARA = "SIN_CAMARA"
 
 # motivos de derrota (y el texto que se muestra)
@@ -165,48 +192,68 @@ MOTIVOS_DERROTA = {
 }
 
 # ---------------------------------------------------------------- jurado (Don Salmón)
+# Caras (cada una tiene su animación)
 NEUTRAL = "neutral"
-APLAUDE = "aplaude"
-ASCO = "asco"
-LLORA = "llora"
-FRASES_JURADO = {
+CONTENTO = "contento"       # salta y aplaude
+PREOCUPADO = "preocupado"   # gotita de sudor y signo de exclamación
+ASCO = "asco"               # olorcitos verdes y se sacude
+LLORA = "llora"             # lágrimas de emoción
+# Lo que dice según cómo va el % (cuando no está comentando algo puntual)
+FRASES_CARA = {
     NEUTRAL: "A ver, a ver...",
-    APLAUDE: "¡Eso, eso!",
-    ASCO: "¡Uy! Cuánta leche afuera...",
+    CONTENTO: "¡Eso, eso!",
+    PREOCUPADO: "Mmm...",
+    ASCO: "Uf...",
     LLORA: "¡Es arte! *snif*",
 }
-TIEMPO_MIN_REACCION = 0.7 # Don Salmón no cambia de cara más rápido que esto (si no, tiembla)
-POS_JURADO = (792, 330)   # centro de abajo del busto
-VELOCIDAD_RESPIRO = 2.0   # vueltas por segundo del "respiro" (sube y baja)
-CADA_PARPADEO = 3.2       # segundos entre parpadeos
+# Comentarios en vivo: evento -> (cara que pone, frases posibles). Se elige una frase al azar.
+COMENTARIOS = {
+    "empieza": (CONTENTO, ["¡Suerte, gatito!", "¡Mostrame esa pata!", "¡Despacito y con amor!"]),
+    "estrella": (CONTENTO, ["¡Una estrella más!", "¡Así se hace!", "¡Bravo, bravo!"]),
+    "derrame": (ASCO, ["¡Ey, eso va afuera!", "¡Cuidado con el plato!", "¡Uy, se te chorrea!"]),
+    "casi_desborde": (ASCO, ["¡Se te desborda!", "¡Pará, pará!"]),
+    "poca_leche": (PREOCUPADO, ["¡Queda poca leche!", "Ojo con la jarra..."]),
+    "frio": (PREOCUPADO, ["¡Se enfría el café!", "¡Apurate un poquito!"]),
+    "quieto": (PREOCUPADO, ["¿Y? ¡Dale que se enfría!", "¿Te quedaste dormido?"]),
+    "vuelve_mano": (CONTENTO, ["¡Ahí está esa pata!", "¡Volviste!"]),
+}
+DURACION_COMENTARIO = 2.5   # segundos que se ve el globito con el comentario
+ESPERA_MISMO_COMENTARIO = 7 # no repite el mismo tipo de comentario antes de esto
+TIEMPO_MIN_REACCION = 0.7   # la cara de base no cambia más rápido que esto (si no, tiembla)
+UMBRAL_ASCO = 0.30          # cara de asco si lo de afuera pasa el 30% del dibujo
+# "derrame": junto la leche que cae afuera en un balde que se va vaciando solo; si se llena, comenta
+UMBRAL_DERRAME = 45         # celdas
+VACIADO_DERRAME = 30        # celdas por segundo
+FRACCION_CASI_DESBORDE = 0.7
+FRACCION_POCA_LECHE = 0.25
+FRACCION_FRIO = 0.25
+TIEMPO_QUIETO = 6           # segundos sin verter (con poco %) para que te apure
+VELOCIDAD_RESPIRO = 2.0     # vueltas por segundo del "respiro" (sube y baja)
+CADA_PARPADEO = 3.2         # segundos entre parpadeos
 DURACION_PARPADEO = 0.15
-VELOCIDAD_APLAUSO = 6     # aplausos por segundo
+VELOCIDAD_APLAUSO = 6       # aplausos por segundo
+ALTURA_SALTO = 2            # pixeles del arte que salta cuando está contento
 
 # ---------------------------------------------------------------- HUD
-RECT_PANEL_CAMARA = (668, 12, 264, 204)
-RECT_PANEL_JURADO = (668, 224, 264, 186)
-RECT_PANEL_PUNTAJE = (668, 418, 264, 210)
+RECT_PANEL_CAMARA = (668, 12, 264, 196)
+RECT_PANEL_JURADO = (668, 216, 264, 236)
+RECT_GLOBO = (684, 226, 232, 64)
+POS_JURADO = (800, 440)     # dónde apoya los pies Don Salmón
+RECT_PANEL_PUNTAJE = (668, 460, 264, 168)
 RECT_TITULO_RONDA = (16, 10, 320, 46)
-RECT_BARRA_LECHE = (690, 536, 220, 20)
-RECT_BARRA_TEMPERATURA = (690, 592, 220, 20)
-DURACION_ESTRELLA = 0.5   # en el resultado, cada estrella aparece medio segundo después de la otra
+RECT_BARRA_LECHE = (690, 548, 220, 18)
+RECT_BARRA_TEMPERATURA = (690, 600, 220, 18)
+DURACION_ESTRELLA = 0.5     # en el resultado, cada estrella aparece medio segundo después de la otra
 
 # ---------------------------------------------------------------- sonido
-# El chorro tiene 5 versiones, una por nota (escala pentatónica de do): cuanto más alta la mano,
-# más aguda la nota. Es lo que quedó del "gesture synth" que descarté.
-NOTAS_CHORRO = [262, 294, 330, 392, 440]
 ARCHIVOS_SONIDO = {
-    "chorro_0": "chorro_0.wav",
-    "chorro_1": "chorro_1.wav",
-    "chorro_2": "chorro_2.wav",
-    "chorro_3": "chorro_3.wav",
-    "chorro_4": "chorro_4.wav",
+    "chorro": "chorro.wav",          # leche saliendo de la jarra (en loop)
     "ding": "ding.wav",              # pasaste la ronda
     "campanita": "campanita.wav",    # aparece una estrella
     "miau_triste": "miau_triste.wav",# perdiste
 }
 ARCHIVO_MUSICA = "musica_lofi.wav"
 VOLUMEN_EFECTOS = 0.8
-VOLUMEN_CHORRO = 0.55
+VOLUMEN_CHORRO = 0.5
 VOLUMEN_MUSICA = 0.45
 FUNDIDO_CHORRO = 80       # milisegundos de fundido al prender o apagar el chorro

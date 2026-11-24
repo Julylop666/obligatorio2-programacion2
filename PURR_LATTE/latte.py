@@ -51,9 +51,18 @@ def tallo(superficie, color, v_arriba, v_abajo, ancho):
     elipse(superficie, color, 0, (v_arriba + v_abajo) / 2, ancho, v_abajo - v_arriba)
 
 
-# ---------------------------------------------------------------- los 4 dibujos
+def media_luna(superficie, color, u, v, ancho, alto, corrimiento):
+    """Dibuja una 'media luna': una elipse a la que le saco otra elipse igual de alta pero más
+    angosta y corrida hacia arriba. Así se forman las capas del tulipán y de la rosetta.
+    """
+    elipse(superficie, color, u, v, ancho, alto)
+    elipse(superficie, (0, 0, 0, 0), u, v - corrimiento, ancho * 0.8, alto)
+
+
+# ---------------------------------------------------------------- los 5 dibujos
 # Cada función pinta su dibujo con figuras simples (círculos, elipses y polígonos) en blanco.
-# Lo que se pinta con TRANSPARENTE queda como "agujero" (los ojos del gato).
+# Lo que se pinta con TRANSPARENTE queda como "agujero" (por ejemplo, los ojos del gato).
+# Están en el orden en que los aprenden los baristas, del más fácil al más difícil.
 def dibujar_corazon(sup, color):
     """Corazón: dos círculos arriba y un triángulo que baja hasta la punta."""
     elipse(sup, color, -0.30, -0.20, 0.72, 0.72)
@@ -62,19 +71,47 @@ def dibujar_corazon(sup, color):
 
 
 def dibujar_tulipan(sup, color):
-    """Tulipán: tres 'pétalos' apilados que se achican hacia arriba, unidos por un tallo."""
-    elipse(sup, color, 0.0, 0.38, 1.10, 0.42)
-    elipse(sup, color, 0.0, 0.00, 0.86, 0.36)
-    elipse(sup, color, 0.0, -0.36, 0.60, 0.32)
-    tallo(sup, color, -0.50, 0.82, 0.14)
+    """Tulipán: tres capas apiladas (cada una 'empuja' a la anterior) y una línea por el medio.
+
+    Se dibuja de abajo hacia arriba: cada capa nueva se apoya adentro del hueco de la anterior,
+    igual que cuando el barista vierte un círculo, después otro encima, y otro.
+    """
+    media_luna(sup, color, 0.0, 0.40, 1.30, 0.62, 0.20)
+    media_luna(sup, color, 0.0, 0.12, 1.00, 0.52, 0.17)
+    # arriba de todo, un corazoncito
+    elipse(sup, color, -0.14, -0.30, 0.34, 0.32)
+    elipse(sup, color, 0.14, -0.30, 0.34, 0.32)
+    poligono(sup, color, [(-0.30, -0.26), (0.30, -0.26), (0.0, 0.0)])
+    tallo(sup, color, -0.36, 0.72, 0.08)
 
 
 def dibujar_rosetta(sup, color):
-    """Rosetta (hoja): seis capas finitas, anchas abajo y angostas arriba, con el tallo al medio."""
-    capas = [(0.58, 1.30), (0.36, 1.14), (0.14, 0.98), (-0.08, 0.82), (-0.30, 0.64), (-0.50, 0.46)]
+    """Rosetta: una hoja de helecho hecha con siete capas finitas, anchas abajo y angostas arriba,
+    un tallo que la corta por el medio y un corazoncito en la punta.
+    """
+    # (altura, ancho) de cada capa: la hoja es más ancha cerca de la base y se afina arriba
+    capas = [(0.62, 1.00), (0.44, 1.22), (0.26, 1.28), (0.08, 1.20), (-0.10, 1.04), (-0.28, 0.82),
+             (-0.44, 0.58)]
     for v, ancho in capas:
-        elipse(sup, color, 0.0, v, ancho, 0.20)
-    tallo(sup, color, -0.68, 0.82, 0.12)
+        media_luna(sup, color, 0.0, v, ancho, 0.32, 0.15)
+    elipse(sup, color, 0.0, -0.62, 0.26, 0.20)
+    tallo(sup, color, -0.62, 0.84, 0.08)
+
+
+def dibujar_cisne(sup, color):
+    """Cisne: media rosetta de costado (el ala), un cuello curvo y un corazoncito de cabeza."""
+    alas = [(-0.10, 0.52, 1.00), (-0.20, 0.32, 0.84), (-0.28, 0.14, 0.68), (-0.34, -0.02, 0.52)]
+    for u, v, ancho in alas:
+        media_luna(sup, color, u, v, ancho, 0.30, 0.13)
+    # El cuello es una línea gruesa que pasa por estos puntos (una curva como una S suave).
+    cuello = [(0.38, 0.54), (0.48, 0.38), (0.52, 0.22), (0.50, 0.06), (0.44, -0.08),
+              (0.36, -0.20), (0.30, -0.32), (0.28, -0.46)]
+    pygame.draw.lines(sup, color, False, [punto(u, v) for u, v in cuello], round(0.15 * RADIO_CAFE))
+    for u, v in cuello:
+        elipse(sup, color, u, v, 0.15, 0.15)     # circulitos en las uniones para que no queden puntas
+    # cabeza: un corazoncito chico mirando a la izquierda, con el pico
+    elipse(sup, color, 0.20, -0.56, 0.26, 0.24)
+    poligono(sup, color, [(0.10, -0.62), (-0.06, -0.56), (0.10, -0.50)])
 
 
 def dibujar_gato(sup, color):
@@ -91,6 +128,7 @@ DIBUJOS = {
     "corazon": dibujar_corazon,
     "tulipan": dibujar_tulipan,
     "rosetta": dibujar_rosetta,
+    "cisne": dibujar_cisne,
     "gato": dibujar_gato,
 }
 

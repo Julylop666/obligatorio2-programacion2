@@ -2,7 +2,7 @@
 
 Muestra la imagen de la cámara pixelada, el punto del dedo índice y si hay pellizco.
 Sirve para ver si la detección anda bien con la luz y el fondo que tengo.
-Se ejecuta con: py prueba_camara.py   (se cierra con la X o con Esc)
+Se ejecuta con: python prueba_camara.py   (se cierra con la X o con Esc)
 """
 import pygame
 from ajustes import COLORES as C, FPS

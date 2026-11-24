@@ -3,10 +3,10 @@
 Igual que en Purr & Brew: nada se baja de internet. Cada .wav se arma sumando ondas seno,
 ruido y "envolventes" (curvas que suben y bajan el volumen). Son 100% propios.
 Se ejecuta una sola vez (los .wav ya vienen hechos en la carpeta sonidos/):
-    py generar_sonidos.py
+    python generar_sonidos.py   (con el .venv activado)
 
 Sonidos:
-  chorro_0..4.wav  chorro de leche en loop, uno por nota de la escala pentatónica (do re mi sol la)
+  chorro.wav       chorro de leche en loop
   ding.wav         pasaste la ronda
   campanita.wav    aparece una estrella
   miau_triste.wav  perdiste
@@ -17,7 +17,7 @@ import os
 import random
 import struct
 import wave
-from ajustes import RUTA_SONIDOS, NOTAS_CHORRO
+from ajustes import RUTA_SONIDOS
 
 TASA = 22050             # muestras por segundo (alcanza para estos sonidos y pesa poco)
 RMS_EFECTOS = 0.09       # sonoridad pareja para todos los efectos
@@ -72,27 +72,26 @@ def campana(frecuencia, t, decaimiento):
     return onda * math.exp(-t * decaimiento)
 
 
-def generar_chorro(frecuencia, semilla):
-    """Chorro de leche de 1 segundo que se puede repetir sin cortes, con un tono de fondo.
+def generar_chorro():
+    """Chorro de leche de 2 segundos que se puede repetir sin cortes.
 
-    Ruido filtrado (el líquido) + un tono suave en la nota pedida (el guiño al synth)
-    + burbujitas. Las frecuencias son números enteros: en 1 segundo entran ciclos completos,
-    así el final empalma justo con el principio.
+    Ruido filtrado (suena a líquido) que sube y baja un poquito (el "borboteo") más unas
+    burbujitas. Las ondulaciones usan frecuencias enteras, así en 2 segundos entran ciclos
+    completos y el final empalma justo con el principio del loop.
     """
-    azar = random.Random(semilla)
-    total = TASA
-    ruido = pasa_bajos([azar.uniform(-1, 1) for _ in range(total)], 0.18)
+    azar = random.Random(30)
+    total = 2 * TASA
+    ruido = pasa_bajos([azar.uniform(-1, 1) for _ in range(total)], 0.16)
     muestras = []
     for i in range(total):
         t = i / TASA
-        borboteo = 0.7 + 0.2 * math.sin(2 * math.pi * 7 * t) + 0.1 * math.sin(2 * math.pi * 13 * t)
-        tono = math.sin(2 * math.pi * frecuencia * t) + 0.3 * math.sin(4 * math.pi * frecuencia * t)
-        muestras.append(ruido[i] * 3.0 * borboteo + tono * 0.22)
-    for inicio in (0.1, 0.35, 0.6, 0.82):            # burbujitas que suben de tono
+        borboteo = 0.75 + 0.15 * math.sin(2 * math.pi * 6 * t) + 0.1 * math.sin(2 * math.pi * 11 * t)
+        muestras.append(ruido[i] * borboteo)
+    for inicio in (0.15, 0.48, 0.9, 1.3, 1.7):        # burbujitas que suben de tono
         for i in range(int(0.06 * TASA)):
             t = i / TASA
             pos = int(inicio * TASA) + i
-            muestras[pos] += math.sin(2 * math.pi * frecuencia * 2 * (1 + 3 * t) * t) * math.exp(-t * 50) * 0.4
+            muestras[pos] += math.sin(2 * math.pi * 400 * (1 + 3 * t) * t) * math.exp(-t * 50) * 0.08
     return muestras
 
 
@@ -188,8 +187,7 @@ def generar_musica():
 
 
 if __name__ == "__main__":
-    for numero, nota in enumerate(NOTAS_CHORRO):
-        guardar(f"chorro_{numero}.wav", generar_chorro(nota, 30 + numero), fundido=False)
+    guardar("chorro.wav", generar_chorro(), fundido=False)
     guardar("ding.wav", generar_ding())
     guardar("campanita.wav", generar_campanita())
     guardar("miau_triste.wav", generar_miau_triste())
