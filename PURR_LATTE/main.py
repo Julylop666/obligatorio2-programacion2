@@ -9,6 +9,8 @@ Estados:
 Dentro de JUGANDO hay dos "pausas": la de Esc y la de cuando la cámara no ve la mano (None).
 
 La mano se usa así: la punta del índice es la jarra y el pellizco (índice + pulgar) vierte.
+Además, la distancia de la mano a la cámara es la altura de la jarra: cerca = chorro grueso,
+lejos = chorro fino (como hacen los baristas para los detalles).
 El teclado solo sirve para los menús (Enter/Espacio, flechas, R, T, Esc, M, N, F11) y el nombre.
 """
 import os
@@ -16,7 +18,7 @@ import pygame
 from ajustes import *
 from vision import Camara
 from latte import Taza, calcular_estrellas
-from particulas import crear_gotas, actualizar_particulas
+from particulas import crear_gotas, actualizar_particulas, segun_grosor
 from jurado import Jurado
 from puntajes import cargar_puntajes, agregar_puntaje
 from dibujo import crear_fondo_mesa, crear_fondo_cafeteria, dibujar_jarra, dibujar_mira
@@ -100,6 +102,16 @@ def suavizar(actual, objetivo):
             actual[1] + (objetivo[1] - actual[1]) * SUAVIZADO)
 
 
+def grosor_segun_mano(tamano):
+    """Convierte el tamaño de la mano en el grosor del chorro (0 = fino, 1 = grueso).
+
+    Mano lejos de la cámara (se ve chica) = jarra alta = chorro fino.
+    Mano cerca de la cámara (se ve grande) = jarra baja = chorro grueso.
+    """
+    grosor = (tamano - TAM_MANO_LEJOS) / (TAM_MANO_CERCA - TAM_MANO_LEJOS)
+    return max(0.0, min(1.0, grosor))
+
+
 # ---------------------------------------------------------------- el juego
 class Juego:
     """Guarda el estado de toda la partida y tiene el bucle principal."""
@@ -135,6 +147,7 @@ class Juego:
         self.punto_camara = None
         self.pellizco = False
         self.pos_jarra = None
+        self.grosor = GROSOR_INICIAL            # qué tan grueso sale el chorro (altura de la jarra)
         self.tiempo_sin_mano = 0.0
         self.corriendo = True
         self.volver_a_portada()
@@ -349,6 +362,11 @@ class Juego:
         self.pellizco = self.camara.hay_pellizco()
         objetivo = camara_a_pantalla(self.punto_camara, self.camara.ancho, self.camara.alto)
         self.pos_jarra = suavizar(self.pos_jarra, objetivo)
+        # el grosor también se suaviza: el tamaño de la mano tiembla un poco de cuadro a cuadro
+        tamano = self.camara.tamano_mano()
+        if tamano is not None:
+            objetivo_grosor = grosor_segun_mano(tamano)
+            self.grosor += (objetivo_grosor - self.grosor) * SUAVIZADO_GROSOR
 
     def actualizar(self, dt):
         """Actualiza la cámara, las animaciones y, si estás jugando, la ronda."""
@@ -380,7 +398,7 @@ class Juego:
             self.gotas_pendientes += CAUDAL_LECHE * dt
             cantidad = min(int(self.gotas_pendientes), self.leche)
             self.gotas_pendientes -= int(self.gotas_pendientes)
-            self.particulas += crear_gotas(self.pos_jarra, cantidad)
+            self.particulas += crear_gotas(self.pos_jarra, cantidad, self.grosor)
             self.leche -= cantidad
         self.actualizar_chorro(vertiendo)
         self.particulas = actualizar_particulas(self.particulas, dt, self.taza)
@@ -467,8 +485,12 @@ class Juego:
             gota.dibujar(self.pantalla)
         if self.pos_jarra is not None:
             vertiendo = self.pellizco and self.leche > 0 and self.cuenta <= 0 and not self.pausado
-            dibujar_mira(self.pantalla, self.pos_jarra, vertiendo)
-            dibujar_jarra(self.pantalla, self.pos_jarra, vertiendo, PELAJES[self.pelaje][1])
+            # la mira se abre según qué tan ancho va a caer la leche (chorro + espuma)
+            radio = (segun_grosor(RADIO_CHORRO_FINO, RADIO_CHORRO_GRUESO, self.grosor)
+                     + segun_grosor(RADIO_ESPUMA_FINO, RADIO_ESPUMA_GRUESO, self.grosor) * PX)
+            elevacion = segun_grosor(ELEVACION_ALTA, ELEVACION_BAJA, self.grosor)
+            dibujar_mira(self.pantalla, self.pos_jarra, vertiendo, radio)
+            dibujar_jarra(self.pantalla, self.pos_jarra, vertiendo, PELAJES[self.pelaje][1], elevacion)
         datos = RONDAS[self.ronda]
         imagen = self.camara.miniatura(TAM_MINIATURA, PIXEL_MINIATURA)
         escenas.dibujar_hud(self.pantalla, self.fuentes, self.ronda, imagen, self.punto_en_cuadro(),
@@ -494,7 +516,7 @@ class Juego:
         elif self.estado == INSTRUCCIONES:
             imagen = self.camara.miniatura(TAM_CAMARA_INSTRUCCIONES, PIXEL_MINIATURA)
             escenas.dibujar_instrucciones(self.pantalla, self.fondo_cafeteria, self.fuentes, imagen,
-                                          self.punto_en_cuadro(), self.pellizco, self.t)
+                                          self.punto_en_cuadro(), self.pellizco, self.grosor, self.t)
         elif self.estado == JUGANDO:
             self.dibujar_ronda()
         elif self.estado == RESULTADO_RONDA:

@@ -3,6 +3,7 @@
 El resto del juego NO importa cv2 ni mediapipe: solo usa lo que devuelve la clase Camara:
   - detectar()      -> (x, y) de la punta del índice en el cuadro, o None si no hay mano
   - hay_pellizco()  -> True si el índice y el pulgar están juntos
+  - tamano_mano()   -> qué tan grande se ve la mano (cerca o lejos de la cámara), o None
   - miniatura()     -> una Surface de pygame con la imagen de la cámara (o None)
   - liberar()       -> cierra la cámara (cap.release())
 
@@ -119,6 +120,16 @@ class Camara:
     def hay_pellizco(self):
         """Devuelve True si en el último cuadro el índice y el pulgar estaban juntos."""
         return self.puntos is not None and self.pellizco
+
+    def tamano_mano(self):
+        """Devuelve qué tan grande se ve la mano en el cuadro (o None si no hay mano).
+
+        Es la distancia de la muñeca a la base del dedo medio dividida por el alto del cuadro:
+        si la mano está cerca de la cámara se ve más grande y el número es más alto.
+        """
+        if self.puntos is None:
+            return None
+        return distancia(self.puntos[PUNTO_MUNECA], self.puntos[PUNTO_BASE_MEDIO]) / self.alto
 
     def miniatura(self, tam, pixel):
         """Devuelve el último cuadro como Surface de pygame del tamaño tam, pixelado (o None).

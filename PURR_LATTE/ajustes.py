@@ -131,16 +131,29 @@ POS_CAMARA_INSTRUCCIONES = (48, 150)
 
 # ---------------------------------------------------------------- leche y partículas
 CAUDAL_LECHE = 80         # gotas por segundo mientras hay pellizco
-RADIO_CHORRO = 9          # en pantalla: qué tan lejos del dedo puede caer cada gota
 VELOCIDAD_DESVIO = 18     # pixeles por segundo que se corre una gota mientras cae
 ALTURA_GOTA = 1.0         # la gota "cae" de altura 1 a 0
 VELOCIDAD_CAIDA = 4.0     # alturas por segundo (tarda 0.25 s en llegar al café)
-RADIO_ESPUMA_INICIAL = 1  # en pixeles del arte
-RADIO_ESPUMA_FINAL = 3
+RADIO_ESPUMA_INICIAL = 1  # en pixeles del arte (la espuma arranca chiquita y se abre)
 TIEMPO_ESPUMA = 0.35      # lo que tarda la espuma en terminar de abrirse
 TAM_GOTA = 2              # tamaño de la gota cayendo, en pixeles del arte
-ELEVACION_JARRA = 52      # cuántos pixeles por encima del punto de caída está el pico de la jarra
 ANGULO_VERTER = 32        # grados que se inclina la jarra al verter
+
+# ---------------------------------------------------------------- altura de la jarra (distancia de la mano)
+# Como los baristas: con la jarra BAJA (cerca del café) la leche sale ancha y blanca; con la
+# jarra ALTA sale un hilito fino, para los detalles. En el juego, acercar la mano a la cámara
+# baja la jarra y alejarla la sube. El "grosor" va de 0 (fino) a 1 (grueso).
+# El tamaño de la mano es la distancia muñeca - base del dedo medio, dividida por el alto del cuadro.
+TAM_MANO_LEJOS = 0.09     # mano así de chica (lejos de la cámara) = chorro fino
+TAM_MANO_CERCA = 0.24     # mano así de grande (cerca de la cámara) = chorro grueso
+SUAVIZADO_GROSOR = 0.2    # el grosor cambia de a poco (el tamaño de la mano tiembla bastante)
+GROSOR_INICIAL = 0.5
+RADIO_CHORRO_FINO = 3     # en pantalla: qué tan lejos del dedo puede caer cada gota
+RADIO_CHORRO_GRUESO = 14
+RADIO_ESPUMA_FINO = 2     # en pixeles del arte: hasta dónde se abre la espuma de cada gota
+RADIO_ESPUMA_GRUESO = 4
+ELEVACION_ALTA = 74       # pixeles entre el pico de la jarra y el café cuando el chorro es fino
+ELEVACION_BAJA = 34       # y cuando es grueso (la jarra se ve más cerca de la taza)
 
 # ---------------------------------------------------------------- puntaje y reglas
 # % = cobertura del dibujo - PENALIZACION_FUERA * (leche fuera del dibujo / tamaño del dibujo)

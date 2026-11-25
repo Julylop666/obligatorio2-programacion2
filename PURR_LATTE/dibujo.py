@@ -6,7 +6,7 @@ agrandada sin suavizar, así los pixeles quedan nítidos. El juego no usa imáge
 """
 import random
 import pygame
-from ajustes import (COLORES as C, PX, PX_JARRA, COLOR_OJOS_BARISTA, ELEVACION_JARRA,
+from ajustes import (COLORES as C, PX, PX_JARRA, COLOR_OJOS_BARISTA,
                      ANGULO_VERTER, ANCHO, ALTO, MARGEN_CAMARA_X, MARGEN_CAMARA_Y, POS_LIENZO,
                      TAM_LIENZO, RADIO_PLATO)
 
@@ -185,27 +185,26 @@ _JARRA = (
     "..OKKKKKKKKKKO..",
     "...OOOOOOOOOO...",
 )
-# La patita del gato agarrando el asa (P = pelaje, R = más claro, Q = borde) y el brazo que
-# baja hacia la esquina, como si el jugador estuviera abajo a la derecha de la pantalla.
+# La patita del gato que agarra el asa: redondita, con los deditos marcados
+# (P = pelaje, R = almohadillas más claras, Q = borde oscuro).
 _PATA = (
-    "..QQQQ.......",
-    ".QPPPPQ......",
-    "QPQPQPPQ.....",
-    "QPPPPPPQ.....",
-    ".QPRRPPPQ....",
-    "..QPPPPPPQ...",
-    "...QPPPPPPQ..",
-    "....QPPPPPPQ.",
-    ".....QPPPPPPQ",
-    "......QQQQQQQ",
+    "..QQQQ..",
+    ".QPPPPQ.",
+    "QPQPPQPQ",
+    "QPPPPPPQ",
+    "QPRPPRPQ",
+    "QPPRRPPQ",
+    ".QPPPPQ.",
+    "..QQQQ..",
 )
-_JARRA_CON_PATA = superponer(_JARRA, _PATA, 11, 2)
+_JARRA_CON_PATA = superponer(_JARRA, _PATA, 11, 1)
 _PICO_JARRA = (1.5, 1.5)      # el pixel 'W' de la punta del pico, en pixeles del arte
 
 
-def dibujar_jarra(pantalla, destino, vertiendo, pelaje):
+def dibujar_jarra(pantalla, destino, vertiendo, pelaje, elevacion):
     """Dibuja la jarrita (agarrada por la pata del color elegido) con el pico sobre 'destino'.
 
+    elevacion: cuántos pixeles por encima del café está el pico (jarra alta o baja).
     Al verter se inclina. Para que el pico quede en el lugar correcto aunque la jarra gire,
     giro también el vector que va del centro del sprite al pico.
     """
@@ -219,16 +218,21 @@ def dibujar_jarra(pantalla, destino, vertiendo, pelaje):
     # pygame.transform.rotate gira en sentido antihorario y Vector2.rotate al revés (la y va
     # para abajo en pantalla), por eso uso el ángulo con signo cambiado.
     desde_centro = (pico - centro_sprite).rotate(-angulo)
-    punta = pygame.Vector2(destino[0], destino[1] - ELEVACION_JARRA)
+    punta = pygame.Vector2(destino[0], destino[1] - elevacion)
     pantalla.blit(girado, girado.get_rect(center=punta - desde_centro))
 
 
-def dibujar_mira(pantalla, destino, vertiendo):
-    """Dibuja la mira (4 cuadraditos) que marca dónde va a caer la leche."""
+def dibujar_mira(pantalla, destino, vertiendo, radio):
+    """Dibuja la mira (4 cuadraditos) que marca dónde va a caer la leche.
+
+    Los cuadraditos se separan según 'radio' (en pantalla): así se ve qué tan ancho va a
+    caer el chorro antes de verter.
+    """
     x = int(destino[0]) // PX * PX
     y = int(destino[1]) // PX * PX
     color = C["leche"] if vertiendo else C["acento"]
-    for dx, dy in ((-3, 0), (3, 0), (0, -3), (0, 3)):
+    paso = max(2, round(radio / PX))
+    for dx, dy in ((-paso, 0), (paso, 0), (0, -paso), (0, paso)):
         caja = (x + dx * PX, y + dy * PX, PX, PX)
         pygame.draw.rect(pantalla, C["contorno"], pygame.Rect(caja).inflate(2, 2))
         pygame.draw.rect(pantalla, color, caja)
@@ -328,7 +332,7 @@ def dibujar_gato(pantalla, pie, pelaje, px, cara="neutral", ojos=COLOR_OJOS_BARI
 # ---------------------------------------------------------------- fondos (se arman UNA vez)
 def crear_fondo_mesa():
     """Arma y devuelve el fondo de la ronda: la barra de madera vista desde arriba, con un
-    individual de mimbre debajo del plato, una servilleta con cucharita y un azucarero.
+    individual de mimbre debajo del plato y unos granos de café sueltos.
 
     Se dibuja en chiquito (un pixel = un pixel del arte) y después se agranda PX veces.
     """
@@ -354,23 +358,8 @@ def crear_fondo_mesa():
         pygame.draw.circle(chica, C["mimbre"] if (r // 2) % 2 == 0 else C["mimbre_oscuro"], centro, r)
     # sombra del plato (un poquito corrida hacia abajo a la derecha)
     pygame.draw.circle(chica, oscurecer(C["mimbre_oscuro"], 0.8), (centro[0] + 2, centro[1] + 3), RADIO_PLATO)
-    # servilleta a cuadritos con una cucharita (abajo a la izquierda)
-    pygame.draw.rect(chica, C["contorno"], (2, 120, 26, 34))
-    pygame.draw.rect(chica, C["blanco"], (3, 121, 24, 32))
-    for x in range(3, 27, 4):
-        pygame.draw.line(chica, C["servilleta"], (x, 121), (x, 152), 2)
-    pygame.draw.rect(chica, C["contorno"], (12, 124, 6, 8))
-    pygame.draw.rect(chica, C["metal"], (13, 125, 4, 6))
-    pygame.draw.rect(chica, C["contorno"], (14, 132, 2, 18))
-    pygame.draw.line(chica, C["metal"], (14, 133), (14, 148))
-    # azucarero (arriba a la derecha)
-    pygame.draw.circle(chica, C["contorno"], (156, 26), 9)
-    pygame.draw.circle(chica, C["menta"], (156, 26), 8)
-    pygame.draw.circle(chica, C["blanco"], (156, 26), 5)
-    for x, y in ((154, 24), (157, 27), (155, 28)):
-        pygame.draw.rect(chica, C["espuma"], (x, y, 2, 2))
     # granos de café sueltos
-    for x, y in ((150, 140), (156, 146), (160, 136), (8, 30), (14, 36), (151, 60)):
+    for x, y in ((150, 140), (156, 146), (160, 136), (8, 30), (14, 36), (151, 60), (10, 140), (16, 146)):
         pygame.draw.rect(chica, C["cafe_oscuro"], (x, y, 3, 2))
         chica.set_at((x + 1, y), C["caramelo"])
     return pygame.transform.scale(chica, (ancho * PX, alto * PX))

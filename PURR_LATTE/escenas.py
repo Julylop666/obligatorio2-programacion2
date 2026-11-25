@@ -11,10 +11,11 @@ from ajustes import (COLORES as C, ANCHO, PX, RONDAS, COLOR_VELO, RECT_PANEL_CAM
                      TAM_CAMARA_INSTRUCCIONES, POS_CAMARA_INSTRUCCIONES, MOTIVOS_DERROTA, POS_LIENZO,
                      TAM_LIENZO, UMBRALES_ESTRELLAS, CANTIDAD_TOP, LARGO_MAXIMO_NOMBRE)
 from dibujo import (dibujar_panel, texto_centrado, texto_envuelto, dibujar_barra, dibujar_fila_estrellas,
-                    dibujar_estrella, dibujar_velo, dibujar_camara, dibujar_gato, dibujar_jarra, pixelar)
+                    dibujar_estrella, dibujar_velo, dibujar_camara, dibujar_gato, pixelar)
 from latte import calcular_estrellas
 
 CENTRO_TAZA = (POS_LIENZO[0] + TAM_LIENZO * PX // 2, POS_LIENZO[1] + TAM_LIENZO * PX // 2)
+_FLECHA = ("OOOOOOO", ".OYYYO.", "..OYO..", "...O...")
 
 
 def titulo_con_sombra(pantalla, texto, fuente, centro):
@@ -53,7 +54,6 @@ def dibujar_portada(pantalla, fondo, fuentes, taza_muestra, jurado, pelaje, t):
     texto_centrado(pantalla, "LATTE ART", fuentes["grande"], C["acento"], (ANCHO // 2, panel.y + 106))
     taza_muestra.dibujar(pantalla, con_guia=False, pos=(ANCHO // 2 - 136, 210), px=2)
     dibujar_gato(pantalla, (180, 560), pelaje, 7, "contento", delantal=True)
-    dibujar_jarra(pantalla, (268, 520), False, pelaje)
     jurado.dibujar(pantalla, (790, 560), 7)
     caja = dibujar_panel(pantalla, (150, 566, 660, 66))
     if parpadea(t):
@@ -94,13 +94,14 @@ def dibujar_elegir_gato(pantalla, fondo, fuentes, elegido, t):
         dibujar_panel(pantalla, (x - 70, 490, 140, 44), C["dorado"] if i == elegido else C["panel"])
         texto_centrado(pantalla, nombre, fuentes["normal"], C["texto"], (x, 512))
         if i == elegido:
-            # arriba del gato elegido flota la jarra con SU patita: así se ve cómo va a quedar
+            # una flechita que rebota arriba del gato elegido
+            flecha = pixelar(_FLECHA, {"O": C["contorno"], "Y": C["dorado"]}, 8)
             salto = round(abs(math.sin(t * 4)) * 10)
-            dibujar_jarra(pantalla, (x - 30, 330 - salto), False, color)
+            pantalla.blit(flecha, flecha.get_rect(midbottom=(x, 340 - salto)))
 
 
-def dibujar_instrucciones(pantalla, fondo, fuentes, imagen, punto, pellizco, t):
-    """Instrucciones: cómo poner la mano y una prueba en vivo del pellizco."""
+def dibujar_instrucciones(pantalla, fondo, fuentes, imagen, punto, pellizco, grosor, t):
+    """Instrucciones: cómo poner la mano, una prueba en vivo del pellizco y del grosor del chorro."""
     pantalla.blit(fondo, (0, 0))
     dibujar_panel(pantalla, (24, 20, 912, 600))
     titulo_con_sombra(pantalla, "¿Cómo se juega?", fuentes["grande"], (ANCHO // 2, 62))
@@ -116,13 +117,20 @@ def dibujar_instrucciones(pantalla, fondo, fuentes, imagen, punto, pellizco, t):
         color, texto = C["azul"], "Mano detectada: ahora pellizcá"
     dibujar_panel(pantalla, estado, color, C["contorno"])
     texto_centrado(pantalla, texto, fuentes["normal"], C["texto"], estado.center)
+    # prueba del grosor: acercá y alejá la mano y mirá cómo cambia la barra
+    y_barra = estado.bottom + 34
+    pantalla.blit(fuentes["chica"].render("Chorro:", False, C["texto"]), (rect_camara.x, y_barra - 4))
+    pantalla.blit(fuentes["chica"].render("fino", False, C["texto"]), (rect_camara.x + 84, y_barra - 4))
+    pantalla.blit(fuentes["chica"].render("grueso", False, C["texto"]), (rect_camara.right - 62, y_barra - 4))
+    dibujar_barra(pantalla, (rect_camara.x + 130, y_barra, rect_camara.width - 206, 16), grosor, C["leche"])
     pasos = [
-        "1. Sentate a unos 50-80 cm de la cámara, con buena luz de frente.",
-        "2. Mostrá la palma: la punta del dedo índice mueve la jarra.",
-        "3. Juntá índice y pulgar (pellizco) para verter la leche.",
-        "4. Seguí el dibujo punteado. Lo que cae afuera resta.",
-        "5. Ojo con la leche de la jarra y con el café, que se enfría.",
-        "Son 5 rondas: corazón, tulipán, rosetta, cisne y cara de gato. Con 1 estrella pasás.",
+        "1. Sentate a 50-80 cm de la cámara, con buena luz.",
+        "2. La punta del dedo índice mueve la jarra.",
+        "3. Pellizco (índice + pulgar): sale leche.",
+        "4. Mano cerca de la cámara: chorro grueso. Mano lejos: chorro fino, para los detalles.",
+        "5. Seguí el dibujo punteado: lo que cae afuera resta.",
+        "6. Cuidá la leche de la jarra y que no se enfríe el café.",
+        "5 rondas. Con 1 estrella pasás a la siguiente.",
         "Esc: pausa  ·  F11: pantalla completa",
     ]
     y = 140
