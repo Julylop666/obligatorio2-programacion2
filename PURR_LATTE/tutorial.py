@@ -141,8 +141,8 @@ def ilus_grosor(pantalla, fuentes, vivo, t):
     pelaje = PELAJES[vivo["pelaje"]][1]
     texto_centrado(pantalla, "Mano lejos", fuentes["normal"], C["texto"], (x0 + 130, y0 + 24))
     cafecito(pantalla, (x0 + 122, y0 + 224), 130)
-    dibujar_jarra(pantalla, (x0 + 120, y0 + 220), True, pelaje, 130)
-    gotitas(pantalla, x0 + 122, y0 + 92, y0 + 220, 2, t)
+    dibujar_jarra(pantalla, (x0 + 120, y0 + 220), True, pelaje, 100)
+    gotitas(pantalla, x0 + 122, y0 + 122, y0 + 220, 2, t)
     pygame.draw.ellipse(pantalla, C["leche"], (x0 + 112, y0 + 218, 20, 8))
     cartelito(pantalla, fuentes, (x0 + 130, y0 + 268), "Chorro finito: detalles", C["azul"])
     texto_centrado(pantalla, "Mano cerca", fuentes["normal"], C["texto"], (x0 + 390, y0 + 24))

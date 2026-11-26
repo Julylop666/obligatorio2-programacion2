@@ -58,6 +58,7 @@ COLORES = {
     "anteojos": (216, 207, 219),
     "delantal_celeste": (130, 187, 214),
     "nariz": (176, 98, 70),           # nariz y orejas en marrón tostado (en vez de rosado)
+    "almohadilla": (238, 160, 170),   # las almohadillas de la patita: el único rosa del juego
     "rojo_suave": (214, 110, 80),     # termómetro caliente
     "planta": (150, 205, 150),
     "planta_oscura": (112, 168, 120),
@@ -83,7 +84,8 @@ COLOR_GUIA = (255, 244, 222, 190)     # puntitos del contorno guía (tenues, con
 # ---------------------------------------------------------------- pixel art
 PX = 4                    # tamaño de un "pixel del arte" en pantalla
 PX_GATO = 6               # Don Salmón en el panel del jurado (como en Purr & Brew)
-PX_JARRA = 5              # la jarrita de leche
+PX_JARRA = 6              # la jarrita de leche
+PX_PATA = 4               # la patita que la agarra (más chica que la jarra, para que quede proporcionada)
 
 # ---------------------------------------------------------------- la taza (en pixeles del arte)
 # Toda la taza se dibuja en una superficie chiquita (LIENZO) que después se agranda PX veces:
@@ -266,6 +268,8 @@ DURACION_ESTRELLA = 0.5     # en el resultado, cada estrella aparece medio segun
 # ---------------------------------------------------------------- botones, transición y portada
 RECT_BOTON_PANTALLA = (12, 12, 44, 44)   # botón de pantalla completa (arriba a la izquierda)
 RECT_BOTON_EMPEZAR = (366, 498, 228, 56) # el cartel de "¡Empezar!" sobre la barra de la portada
+CENTRO_TAZA_PORTADA = (480, 346)         # la taza grande de la portada también es un botón
+RADIO_TAZA_PORTADA = 128
 RECT_BOTON_TOP = (218, 572, 160, 48)
 RECT_BOTON_GALERIA = (582, 572, 160, 48)
 DURACION_FUNDIDO = 0.5                   # segundos de la transición (se oscurece y se aclara)

@@ -11,9 +11,10 @@ from ajustes import (COLORES as C, ANCHO, PX, RONDAS, COLOR_VELO, RECT_PANEL_CAM
                      RECT_BARRA_TEMPERATURA, TAM_MINIATURA, POS_MINIATURA, POS_JURADO, PELAJES,
                      MOTIVOS_DERROTA, POS_LIENZO, TAM_LIENZO, UMBRALES_ESTRELLAS, CANTIDAD_TOP,
                      LARGO_MAXIMO_NOMBRE, RECT_BOTON_EMPEZAR, RECT_BOTON_TOP, RECT_BOTON_GALERIA,
-                     SALUDO_DON_SALMON)
+                     SALUDO_DON_SALMON, CENTRO_TAZA_PORTADA, RADIO_TAZA_PORTADA)
 from dibujo import (dibujar_panel, texto_centrado, texto_envuelto, dibujar_barra, dibujar_fila_estrellas,
-                    dibujar_estrella, dibujar_velo, dibujar_camara, dibujar_gato, pixelar, dibujar_boton)
+                    dibujar_estrella, dibujar_velo, dibujar_camara, dibujar_gato, pixelar, dibujar_boton,
+                    dibujar_banderines, dibujar_vapor)
 from latte import calcular_estrellas
 
 CENTRO_TAZA = (POS_LIENZO[0] + TAM_LIENZO * PX // 2, POS_LIENZO[1] + TAM_LIENZO * PX // 2)
@@ -48,16 +49,27 @@ def dibujar_globo(pantalla, rect, texto, fuente, punta_x):
 
 
 # ---------------------------------------------------------------- portada, nombre y elegir gato
-def dibujar_portada(pantalla, fondo, fuentes, taza_muestra, jurado, pelaje, mouse, t):
-    """Portada: el título, la taza de muestra sobre la barra, tu gato, Don Salmón saludando y los
-    botones (¡Empezar!, Top y Galería). mouse: posición del mouse, para resaltar el botón de abajo.
+def dibujar_portada(pantalla, fondo, fuentes, taza_muestra, cafetera, jurado, pelaje, mouse, t):
+    """Portada: banderines del concurso, el título, la taza humeante (que también es un botón),
+    la cafetera, tu gato, Don Salmón saludando y los botones. mouse: posición del mouse.
     """
     pantalla.blit(fondo, (0, 0))
+    dibujar_banderines(pantalla, 0, t)
     panel = dibujar_panel(pantalla, (240, 20, 480, 140))
     titulo_con_sombra(pantalla, "Purr & Brew", fuentes["titulo"], (ANCHO // 2, panel.y + 52))
     texto_centrado(pantalla, "LATTE ART", fuentes["grande"], C["acento"], (ANCHO // 2, panel.y + 106))
-    taza_muestra.dibujar(pantalla, con_guia=False, pos=(ANCHO // 2 - 136, 210), px=2)
-    dibujar_gato(pantalla, (150, 560), pelaje, 7, "contento", delantal=True)
+    pantalla.blit(cafetera, cafetera.get_rect(midbottom=(276, 478)))
+    # La taza es un botón: con el mouse encima "sube" un poquito y se le marca el borde.
+    encima = mouse_sobre_taza(mouse)
+    alto = 8 if encima else 0
+    centro_x, centro_y = CENTRO_TAZA_PORTADA
+    if encima:
+        pygame.draw.circle(pantalla, C["dorado"], (centro_x, centro_y - alto), RADIO_TAZA_PORTADA + 6, 4)
+    taza_muestra.dibujar(pantalla, con_guia=False, pos=(centro_x - 136, centro_y - 136 - alto), px=2)
+    dibujar_vapor(pantalla, centro_x, centro_y - 92 - alto, t)
+    if encima:
+        dibujar_globo(pantalla, (centro_x - 110, 170, 220, 46), "¡Tocá para empezar!", fuentes["chica"], centro_x)
+    dibujar_gato(pantalla, (130, 560), pelaje, 7, "contento", delantal=True)
     jurado.dibujar(pantalla, (810, 560), 7)
     # Don Salmón saluda con su globito (la puntita apunta a él)
     dibujar_globo(pantalla, (640, 340, 300, 70), SALUDO_DON_SALMON, fuentes["chica"], 810)
@@ -66,6 +78,12 @@ def dibujar_portada(pantalla, fondo, fuentes, taza_muestra, jurado, pelaje, mous
     for rect, texto, fuente in botones:
         rect = pygame.Rect(rect)
         dibujar_boton(pantalla, rect, texto, fuente, rect.collidepoint(mouse))
+
+
+def mouse_sobre_taza(mouse):
+    """Devuelve True si el mouse está sobre la taza grande de la portada (un círculo)."""
+    distancia = math.hypot(mouse[0] - CENTRO_TAZA_PORTADA[0], mouse[1] - CENTRO_TAZA_PORTADA[1])
+    return distancia <= RADIO_TAZA_PORTADA
 
 
 def dibujar_nombre(pantalla, fondo, fuentes, nombre, jurado, t):
@@ -242,8 +260,7 @@ def dibujar_victoria(pantalla, fondo, fuentes, estrellas_por_ronda, puntos, jura
     dibujar_gato(pantalla, (320, 530), pelaje, 7, "contento", delantal=True)
     jurado.dibujar(pantalla, (640, 530), 7)
     if parpadea(t):
-        texto_centrado(pantalla, "Enter: ver el top  ·  R: volver a jugar", fuentes["normal"], C["acento"],
-                       (ANCHO // 2, caja.bottom - 34))
+        texto_centrado(pantalla, "Enter: ver la galería", fuentes["normal"], C["acento"], (ANCHO // 2, caja.bottom - 34))
 
 
 def dibujar_derrota(pantalla, fondo, fuentes, motivo, numero_ronda, taza, puntos, jurado, t):
@@ -263,8 +280,7 @@ def dibujar_derrota(pantalla, fondo, fuentes, motivo, numero_ronda, taza, puntos
                 "desborde": "Tip: soltá el pellizco cuando salís del dibujo."}
     texto_envuelto(pantalla, consejos[motivo], fuentes["chica"], C["texto"], (panel.x + 22, 428, panel.width - 44, 80))
     if parpadea(t):
-        texto_centrado(pantalla, "Enter: ver el top", fuentes["normal"], C["acento"], (panel.centerx, 560))
-        texto_centrado(pantalla, "R: volver a jugar", fuentes["normal"], C["acento"], (panel.centerx, 592))
+        texto_centrado(pantalla, "Enter: ver la galería", fuentes["normal"], C["acento"], (panel.centerx, 580))
 
 
 def dibujar_top(pantalla, fondo, fuentes, puntajes, resaltado, t):
@@ -295,15 +311,17 @@ def dibujar_top(pantalla, fondo, fuentes, puntajes, resaltado, t):
         texto_centrado(pantalla, f"Quedaste en el puesto {resaltado + 1}. ¡La próxima entrás!", fuentes["chica"],
                        C["texto"], (ANCHO // 2, caja.bottom - 62))
     if parpadea(t):
-        texto_centrado(pantalla, "R o Esc: volver a la portada", fuentes["normal"], C["acento"],
+        texto_centrado(pantalla, "Enter, R o Esc: volver a la portada", fuentes["normal"], C["acento"],
                        (ANCHO // 2, caja.bottom - 30))
 
 
-def dibujar_galeria(pantalla, fondo, fuentes, datos, fotos, vacias, t):
+def dibujar_galeria(pantalla, fondo, fuentes, datos, fotos, vacias, nuevos, desde_final, t):
     """Galería de los mejores artes: la mejor taza de cada dibujo, con quién la hizo y su %.
 
     datos: {dibujo: {"nombre", "porcentaje"}}  fotos: {dibujo: Surface}
     vacias: {dibujo: Surface} con la taza sin leche, para los dibujos que todavía no tienen récord.
+    nuevos: los dibujos en los que batiste el récord en esta partida (se marcan en dorado).
+    desde_final: True si llegaste acá al terminar una partida (después sigue el top).
     """
     pantalla.blit(fondo, (0, 0))
     titulo = dibujar_panel(pantalla, (230, 10, 500, 56))
@@ -313,8 +331,13 @@ def dibujar_galeria(pantalla, fondo, fuentes, datos, fotos, vacias, t):
         fila, columna = (0, i) if i < 3 else (1, i - 3)
         x = 90 + columna * 280 if fila == 0 else 230 + columna * 280
         y = 80 + fila * 270
-        marco = dibujar_panel(pantalla, (x, y, 220, 256))
         dibujo = ronda["dibujo"]
+        if dibujo in nuevos:
+            marco = dibujar_panel(pantalla, (x, y, 220, 256), C["dorado"], C["brillo_dorado"])
+            cinta = dibujar_panel(pantalla, (x + 130, y - 10, 100, 32), C["acento"], C["contorno"])
+            texto_centrado(pantalla, "¡Nuevo!", fuentes["chica"], C["texto_claro"], cinta.center)
+        else:
+            marco = dibujar_panel(pantalla, (x, y, 220, 256))
         foto = fotos.get(dibujo, vacias[dibujo])
         pantalla.blit(pygame.transform.scale(foto, (TAM_LIENZO, TAM_LIENZO)), (marco.centerx - TAM_LIENZO // 2, y + 12))
         texto_centrado(pantalla, ronda["nombre"], fuentes["normal"], C["texto"], (marco.centerx, y + 170))
@@ -325,7 +348,8 @@ def dibujar_galeria(pantalla, fondo, fuentes, datos, fotos, vacias, t):
         else:
             texto_centrado(pantalla, "Todavía nadie", fuentes["chica"], C["texto"], (marco.centerx, y + 214))
     if parpadea(t):
-        texto_centrado(pantalla, "R o Esc: volver a la portada", fuentes["normal"], C["acento"], (ANCHO // 2, 616))
+        texto = "Enter: ver el top" if desde_final else "R o Esc: volver a la portada"
+        texto_centrado(pantalla, texto, fuentes["normal"], C["acento"], (ANCHO // 2, 620))
 
 
 def dibujar_sin_camara(pantalla, fondo, fuentes, error):

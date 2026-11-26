@@ -8,7 +8,7 @@ Don Salmón te anotó en el concurso de latte art del barrio. **Tu mano es la ja
 
 ## Cómo se juega
 
-**Antes de empezar:** en la portada apretás **¡Empezar!**, escribís tu nombre (va al top) y elegís el color de tu gatito, como en Purr & Brew. La jarra aparece agarrada por una patita de ese color. Después Don Salmón te explica todo en un **tutorial de 6 páginas**, con dibujos y la cámara en vivo para probar cada gesto.
+**Antes de empezar:** en la portada apretás **¡Empezar!** (o tocás directamente la taza de café humeante), escribís tu nombre (va al top) y elegís el color de tu gatito, como en Purr & Brew. La jarra aparece agarrada por una patita de ese color. Después Don Salmón te explica todo en un **tutorial de 6 páginas**, con dibujos y la cámara en vivo para probar cada gesto.
 
 **Objetivo:** pasar las 5 rondas del concurso y quedar lo más alto posible en el top. Los dibujos siguen el orden en que aprenden los baristas de verdad:
 1. **Corazón**: la base de todo.
@@ -32,7 +32,7 @@ Don Salmón te anotó en el concurso de latte art del barrio. **Tu mano es la ja
 
 **Servir:** cuando tu taza ya vale al menos 1 estrella, sacá la jarra de la taza (afuera del plato) sin verter y quedate así un segundo y medio: la taza se sirve. Con 100% se sirve sola.
 
-**Galería:** la mejor taza de cada dibujo se guarda con una foto y el nombre de quien la hizo (carpeta `galeria/`). Se ve desde la portada con el botón **Galería** o la tecla **G**.
+**Galería:** la mejor taza de cada dibujo se guarda con una foto y el nombre de quien la hizo (carpeta `galeria/`). Al terminar una partida (ganes o pierdas) siempre pasás por la galería, con tus récords nuevos marcados en dorado, y después por el top. También se ve desde la portada con el botón **Galería** o la tecla **G**.
 
 **Top:** al terminar (ganes o pierdas) tu partida se anota en el top con tu nombre y tu gatito. Los puntos son la suma de los porcentajes de todas las rondas que jugaste (máximo 500). El top se guarda en `puntajes.json`, así que queda guardado aunque cierres el juego.
 
@@ -50,7 +50,7 @@ Si la cámara no abre al iniciar, aparece una pantalla que explica qué revisar 
 |---|---|
 | Dedo índice frente a la cámara | Mover la jarra |
 | Pellizco (índice + pulgar) | Verter leche |
-| Mouse | Botones de la portada, del tutorial y el de pantalla completa (arriba a la izquierda) |
+| Mouse | Botones de la portada (la taza también es un botón), del tutorial y el de pantalla completa (arriba a la izquierda) |
 | Enter / Espacio | Avanzar en los menús |
 | Teclado | Escribir tu nombre (Borrar corrige) |
 | Flechas izquierda / derecha | Elegir el color del gatito |
@@ -64,8 +64,8 @@ Si la cámara no abre al iniciar, aparece una pantalla que explica qué revisar 
 
 ### Estados del juego
 
-`PORTADA → NOMBRE → ELEGIR_GATO → TUTORIAL → JUGANDO (rondas 1 a 5) → RESULTADO_RONDA → … → VICTORIA → TOP`
-Desde `JUGANDO` se puede ir a `DERROTA` (y de ahí al `TOP`). Desde la `PORTADA` también se va al `TOP` y a la `GALERIA`. Con **R** o **Esc** se vuelve a la `PORTADA`. Entre pantallas hay una transición (se oscurece y se aclara). Dentro de `JUGANDO` hay una cuenta regresiva de 3 segundos, la pausa (Esc) y la pausa automática sin mano.
+`PORTADA → NOMBRE → ELEGIR_GATO → TUTORIAL → JUGANDO (rondas 1 a 5) → RESULTADO_RONDA → … → VICTORIA → GALERIA → TOP → PORTADA`
+Desde `JUGANDO` se puede ir a `DERROTA` (y de ahí a la `GALERIA` y al `TOP`). Desde la `PORTADA` también se va al `TOP` y a la `GALERIA`. Con **R** o **Esc** se vuelve a la `PORTADA`. Entre pantallas hay una transición (se oscurece y se aclara). Dentro de `JUGANDO` hay una cuenta regresiva de 3 segundos, la pausa (Esc) y la pausa automática sin mano.
 
 ## Instalación y ejecución (Windows, Python 3.12)
 
@@ -145,4 +145,5 @@ Si aparece un error con `cv2`, puede ser que estén instalados `opencv-python` y
   5. "Que haya un top al final y que tengas que poner tu nombre; poder elegir el color del gatito y que la jarra tenga una patita de ese color; Don Salmón más lindo, como en Purr & Brew, y que reaccione en vivo; dibujos como los que hacen los baristas de verdad; pantalla completa." (segunda versión)
   6. "Altura de la jarra con la distancia de la mano: cerca = chorro grueso, lejos = chorro fino." (tercera versión)
   7. "Mejorar la perspectiva cuando pellizcás, botón de pantalla completa, más leche para poder llegar al 100%, galería de los mejores artes, botón de inicio con transición y un tutorial más explicado, como el de Purr & Brew." (cuarta versión)
+  8. "Que la taza de la portada también sea el botón de empezar, que al final vaya siempre a la galería, una portada más linda y una patita que se entienda." (quinta versión)
 - **Cita (APA):** Claude. (2026). *Prompts utilizados para la programación del juego Purr & Brew: Latte Art* [Generación de código]. Anthropic. Recuperado de https://claude.ai

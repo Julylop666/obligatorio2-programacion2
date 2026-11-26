@@ -4,9 +4,10 @@ Igual que en Purr & Brew, los sprites son grillas de texto: cada letra es un pix
 paleta dice de qué color es cada letra. pixelar() convierte la grilla en una Surface
 agrandada sin suavizar, así los pixeles quedan nítidos. El juego no usa imágenes externas.
 """
+import math
 import random
 import pygame
-from ajustes import (COLORES as C, PX, PX_JARRA, COLOR_OJOS_BARISTA,
+from ajustes import (COLORES as C, PX, PX_JARRA, PX_PATA, COLOR_OJOS_BARISTA,
                      ANGULO_VERTER, ANCHO, ALTO, MARGEN_CAMARA_X, MARGEN_CAMARA_Y, POS_LIENZO,
                      TAM_LIENZO, RADIO_PLATO)
 
@@ -198,31 +199,63 @@ def dibujar_fila_estrellas(pantalla, centro, cantidad, total=3, px=PX, separacio
 
 # ---------------------------------------------------------------- jarra de leche con la patita
 _JARRA = (
-    "OOO.............",
-    "OWWOOOOOOOOOO...",
-    ".OOMMMMMMMMMMO..",
-    "..OMSMMMMMMMMOOO",
-    "..OMSMMMMMMMMO.O",
-    "..OMSMMMMMMMMO.O",
-    "..OMSMMMMMMMMO.O",
-    "..OMSMMMMMMMMOOO",
-    "..OMMMMMMMMMMO..",
-    "..OKKKKKKKKKKO..",
-    "...OOOOOOOOOO...",
+    "OOOO..................",
+    "OWWWOOOOOOOOOOOOOO....",
+    ".OWWMMMMMMMMMMMMMMO...",
+    "..OOMMMMMMMMMMMMMMO...",
+    "...OMSSMMMMMMMMMMMOOOO",
+    "...OMSSMMMMMMMMMMMO..O",
+    "...OMSMMMMMMMMMMMMO..O",
+    "...OMSMMMMMMMMMMMMO..O",
+    "...OMSMMMMMMMMMMMMO..O",
+    "...OMSMMMMMMMMMMMMO..O",
+    "...OMMMMMMMMMMMMMMOOOO",
+    "...OMMMMMMMMMMMMMMO...",
+    "...OKKKKKKKKKKKKKKO...",
+    "....OOOOOOOOOOOOOO....",
 )
-# La patita del gato que agarra el asa: redondita, con los deditos marcados
-# (P = pelaje, R = almohadillas más claras, Q = borde oscuro).
+# La patita del gato que agarra el asa, vista de frente: cuatro deditos de pelo, cada uno con
+# su almohadilla rosa, y la almohadilla grande abajo. Así se reconoce al toque que es una pata.
+# (P = pelaje, B = almohadillas rosas, Q = borde oscuro)
 _PATA = (
-    "..QQQQ..",
-    ".QPPPPQ.",
-    "QPQPPQPQ",
-    "QPPPPPPQ",
-    "QPRPPRPQ",
-    "QPPRRPPQ",
-    ".QPPPPQ.",
-    "..QQQQ..",
+    "....QQQQ..QQQQ....",
+    "...QPPPPQQPPPPQ...",
+    "...QPBBPQQPBBPQ...",
+    "...QPBBPQQPBBPQ...",
+    ".QQQQPPQQQQPPQQQQ.",
+    "QPPPPQQPPPPQQPPPPQ",
+    "QPBBPQPPPPPPQPBBPQ",
+    "QPBBPQPPPPPPQPBBPQ",
+    ".QPPQPPPPPPPPQPPQ.",
+    "..QQPPPPPPPPPPQQ..",
+    "..QPPPPBBBBPPPPQ..",
+    "..QPPPBBBBBBPPPQ..",
+    "..QPPBBBBBBBBPPQ..",
+    "..QPPBBBBBBBBPPQ..",
+    "...QPPBBBBBBPPQ...",
+    "....QQPPPPPPQQ....",
+    "......QQQQQQ......",
 )
-_JARRA_CON_PATA = superponer(_JARRA, _PATA, 11, 1)
+# Dónde va la patita sobre la jarra (en pixeles de pantalla): encima del asa, a la derecha.
+POS_PATA_EN_JARRA = (86, 12)
+
+
+def sprite_jarra_con_pata(pelaje):
+    """Arma y devuelve la jarra con la patita del color 'pelaje', en una sola Surface.
+
+    La jarra y la patita se pixelan cada una con su tamaño (PX_JARRA y PX_PATA) y después
+    pego la patita encima del asa. Así puedo achicar la patita sin achicar la jarra.
+    """
+    paleta = {"O": C["contorno"], "M": C["metal"], "S": C["blanco"], "K": C["metal_oscuro"],
+              "W": C["leche"], "P": pelaje, "B": C["almohadilla"], "Q": oscurecer(pelaje, 0.4)}
+    jarra = pixelar(_JARRA, paleta, PX_JARRA)
+    pata = pixelar(_PATA, paleta, PX_PATA)
+    ancho = max(jarra.get_width(), POS_PATA_EN_JARRA[0] + pata.get_width())
+    alto = max(jarra.get_height(), POS_PATA_EN_JARRA[1] + pata.get_height())
+    junta = pygame.Surface((ancho, alto), pygame.SRCALPHA)
+    junta.blit(jarra, (0, 0))
+    junta.blit(pata, POS_PATA_EN_JARRA)
+    return junta
 _PICO_JARRA = (1.5, 1.5)      # el pixel 'W' de la punta del pico, en pixeles del arte
 
 
@@ -233,9 +266,11 @@ def dibujar_jarra(pantalla, destino, vertiendo, pelaje, elevacion):
     Al verter se inclina. Para que el pico quede en el lugar correcto aunque la jarra gire,
     giro también el vector que va del centro del sprite al pico.
     """
-    paleta = {"O": C["contorno"], "M": C["metal"], "S": C["blanco"], "K": C["metal_oscuro"],
-              "W": C["leche"], "P": pelaje, "R": aclarar(pelaje, 0.5), "Q": oscurecer(pelaje, 0.4)}
-    sprite = pixelar(_JARRA_CON_PATA, paleta, PX_JARRA)
+    # la armo una sola vez por color y la guardo (como hace pixelar con los sprites)
+    clave = ("jarra", tuple(pelaje))
+    if clave not in _sprites_armados:
+        _sprites_armados[clave] = sprite_jarra_con_pata(pelaje)
+    sprite = _sprites_armados[clave]
     angulo = ANGULO_VERTER if vertiendo else 0
     girado = pygame.transform.rotate(sprite, angulo)
     centro_sprite = pygame.Vector2(sprite.get_width() / 2, sprite.get_height() / 2)
@@ -352,6 +387,64 @@ def dibujar_gato(pantalla, pie, pelaje, px, cara="neutral", ojos=COLOR_OJOS_BARI
         pantalla.blit(superficie, caja)
     pantalla.blit(sprite, rect)
     return rect
+
+
+# ---------------------------------------------------------------- adornos de la portada
+def crear_cafetera():
+    """Arma y devuelve la cafetera espresso de la barra (pixel art), agrandada PX veces."""
+    chica = pygame.Surface((30, 28), pygame.SRCALPHA)
+    borde = C["contorno"]
+    # dos tacitas arriba (las cafeteras de verdad las tienen ahí para que estén calentitas)
+    for x in (6, 16):
+        pygame.draw.rect(chica, borde, (x, 0, 8, 5))
+        pygame.draw.rect(chica, C["taza"], (x + 1, 1, 6, 3))
+    # cuerpo de metal con su brillo
+    pygame.draw.rect(chica, borde, (1, 5, 28, 17))
+    pygame.draw.rect(chica, C["metal"], (2, 6, 26, 15))
+    pygame.draw.rect(chica, C["blanco"], (3, 7, 2, 12))
+    # dos relojitos de presión y la plaquita dorada
+    for x in (9, 18):
+        pygame.draw.circle(chica, borde, (x + 2, 10), 3)
+        pygame.draw.circle(chica, C["blanco"], (x + 2, 10), 2)
+        chica.set_at((x + 2, 9), borde)
+    pygame.draw.rect(chica, C["brillo_dorado"], (12, 15, 6, 2))
+    # grupo y portafiltro (el "mango" negro), con un hilito de café cayendo en la tacita
+    pygame.draw.rect(chica, borde, (11, 18, 8, 3))
+    pygame.draw.rect(chica, borde, (19, 19, 8, 2))
+    pygame.draw.line(chica, C["cafe_oscuro"], (15, 21), (15, 23))
+    # bandeja de abajo con la tacita
+    pygame.draw.rect(chica, borde, (1, 25, 28, 3))
+    pygame.draw.rect(chica, C["metal_oscuro"], (2, 25, 26, 2))
+    pygame.draw.rect(chica, borde, (12, 22, 7, 4))
+    pygame.draw.rect(chica, C["taza"], (13, 23, 5, 2))
+    return pygame.transform.scale(chica, (30 * PX, 28 * PX))
+
+
+def dibujar_banderines(pantalla, y, t):
+    """Dibuja una guirnalda de banderines de concurso de lado a lado (se mueven apenas, con el aire)."""
+    colores = (C["menta"], C["dorado"], C["azul"], C["taza"], C["verde"])
+    pygame.draw.line(pantalla, C["contorno"], (0, y), (ANCHO, y), 2)
+    for i, x in enumerate(range(8, ANCHO, 48)):
+        vaiven = round(math.sin(t * 2 + i) * 2)
+        punta = (x + 16 + vaiven, y + 34)
+        pygame.draw.polygon(pantalla, C["contorno"], [(x - 2, y), (x + 34, y), (punta[0], punta[1] + 3)])
+        pygame.draw.polygon(pantalla, colores[i % len(colores)], [(x + 2, y + 2), (x + 30, y + 2), punta])
+
+
+def dibujar_vapor(pantalla, centro_x, base_y, t):
+    """Dibuja tres hilitos de vapor que suben ondulando desde el café (se ve que está calentito)."""
+    capa = pygame.Surface((120, 90), pygame.SRCALPHA)
+    for i, dx in enumerate((24, 60, 96)):
+        for paso in range(8):
+            # cada cuadradito sube con el tiempo y se va borrando a medida que sube
+            altura = (paso * 11 + t * 30 + i * 17) % 88
+            x = dx + round(math.sin(altura / 12 + i) * 6)
+            transparencia = int(235 * (1 - altura / 88))
+            # un borde gris clarito alrededor para que el vapor se vea también contra la pared clara
+            y = int(88 - altura) // PX * PX
+            capa.fill((150, 170, 165, transparencia // 2), (x // PX * PX - 1, y - 1, PX + 2, PX * 2 + 2))
+            capa.fill((255, 255, 255, transparencia), (x // PX * PX, y, PX, PX * 2))
+    pantalla.blit(capa, (centro_x - 60, base_y - 88))
 
 
 # ---------------------------------------------------------------- fondos (se arman UNA vez)

@@ -4,7 +4,7 @@ Estados:
   PORTADA -> NOMBRE (escribís tu nombre) -> ELEGIR_GATO (color del gatito) -> TUTORIAL (6 páginas)
   TUTORIAL -> JUGANDO (ronda 1..5) -> RESULTADO_RONDA (si llegaste a 1 estrella) -> ... -> VICTORIA
   JUGANDO -> DERROTA (se enfrió, se terminó la leche o se desbordó)
-  VICTORIA / DERROTA -> TOP -> PORTADA, sin cerrar la ventana.
+  VICTORIA / DERROTA -> GALERIA (siempre) -> TOP -> PORTADA, sin cerrar la ventana.
   Desde la portada también se va al TOP y a la GALERIA (las mejores tazas de cada dibujo).
   Si la cámara no abre: SIN_CAMARA (un aviso claro en vez de un error).
 Dentro de JUGANDO hay dos "pausas": la de Esc y la de cuando la cámara no ve la mano (None).
@@ -27,7 +27,7 @@ from jurado import Jurado
 from puntajes import cargar_puntajes, agregar_puntaje
 from galeria import cargar_galeria, guardar_arte
 from tutorial import Tutorial
-from dibujo import (crear_fondo_mesa, crear_fondo_cafeteria, dibujar_jarra, dibujar_mira,
+from dibujo import (crear_fondo_mesa, crear_fondo_cafeteria, crear_cafetera, dibujar_jarra, dibujar_mira,
                     dibujar_boton_pantalla_completa, dibujar_velo)
 import escenas
 
@@ -134,6 +134,7 @@ class Juego:
         self.fuentes = cargar_fuentes()
         self.fondo_mesa = crear_fondo_mesa()
         self.fondo_cafeteria = crear_fondo_cafeteria()
+        self.cafetera = crear_cafetera()
         self.camara = Camara()
         self.sonidos = cargar_sonidos()
         self.musica_on = iniciar_musica()
@@ -155,6 +156,7 @@ class Juego:
         # transición entre pantallas: qué función llamar cuando la pantalla esté oscura
         self.accion_fundido = None
         self.tiempo_fundido = 0.0
+        self.cursor_mano = False
         self.t = 0.0                             # reloj general para las animaciones
         # el jugador: su nombre y el gato que eligió (se mantienen entre partidas)
         self.nombre = ""
@@ -180,6 +182,8 @@ class Juego:
         self.motivo_derrota = None
         self.puesto = None
         self.record = False
+        self.records_partida = []                # dibujos en los que batiste el récord en esta partida
+        self.galeria_desde_final = False
         self.pausado = False
         self.taza = Taza(RONDAS[0]["dibujo"])
         self.particulas = []
@@ -218,6 +222,8 @@ class Juego:
             # si es la mejor taza de este dibujo, entra a la galería
             self.record = guardar_arte(self.galeria_datos, self.galeria_fotos, self.taza.nombre_dibujo,
                                        self.nombre.strip(), porcentaje, self.taza.imagen())
+            if self.record:
+                self.records_partida.append(self.taza.nombre_dibujo)
             self.estrellas_por_ronda.append(estrellas)
             self.estrellas_ronda = estrellas
             self.estrellas_visibles = 0
@@ -295,7 +301,13 @@ class Juego:
         self.estado = TOP
 
     def ir_a_galeria(self):
-        """Pasa a la galería de los mejores artes."""
+        """Pasa a la galería de los mejores artes (desde la portada)."""
+        self.galeria_desde_final = False
+        self.estado = GALERIA
+
+    def ir_a_galeria_final(self):
+        """Al terminar una partida (ganes o pierdas) siempre se pasa por la galería, y después al top."""
+        self.galeria_desde_final = True
         self.estado = GALERIA
 
     def siguiente_ronda(self):
@@ -380,7 +392,8 @@ class Juego:
         if self.boton_pantalla_visible() and pygame.Rect(RECT_BOTON_PANTALLA).collidepoint(pos):
             pygame.display.toggle_fullscreen()
         elif self.estado == PORTADA:
-            if pygame.Rect(RECT_BOTON_EMPEZAR).collidepoint(pos):
+            # se puede empezar con el botón o tocando directamente la taza de café
+            if pygame.Rect(RECT_BOTON_EMPEZAR).collidepoint(pos) or escenas.mouse_sobre_taza(pos):
                 self.ir_a(self.ir_a_nombre)
             elif pygame.Rect(RECT_BOTON_TOP).collidepoint(pos):
                 self.puesto = None
@@ -393,6 +406,34 @@ class Juego:
                 self.tutorial.anterior()
             elif boton == "siguiente" and self.tutorial.siguiente():
                 self.ir_a(self.empezar_partida)
+
+    def actualizar_cursor(self, mano):
+        """Pone la manito del mouse sobre lo que se puede tocar (como en una página web) y la
+        flecha en el resto. Solo lo cambia cuando hace falta, no en cada cuadro.
+        """
+        if mano == self.cursor_mano:
+            return
+        self.cursor_mano = mano
+        try:
+            if mano:
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+            else:
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+        except pygame.error:
+            pass                         # si la compu no tiene esos cursores, queda la flecha y listo
+
+    def hay_algo_para_tocar(self, pos):
+        """Devuelve True si en esa posición del mouse hay un botón (o la taza de la portada)."""
+        if self.boton_pantalla_visible() and pygame.Rect(RECT_BOTON_PANTALLA).collidepoint(pos):
+            return True
+        if self.estado == PORTADA:
+            for rect in (RECT_BOTON_EMPEZAR, RECT_BOTON_TOP, RECT_BOTON_GALERIA):
+                if pygame.Rect(rect).collidepoint(pos):
+                    return True
+            return escenas.mouse_sobre_taza(pos)
+        if self.estado == TUTORIAL:
+            return self.tutorial.boton_en(pos) is not None
+        return False
 
     def manejar_evento(self, evento):
         """Atiende la X de la ventana, el mouse y las teclas de los menús según el estado."""
@@ -439,8 +480,12 @@ class Juego:
         elif self.estado == RESULTADO_RONDA and avanzar and self.estrellas_visibles == self.estrellas_ronda:
             self.ir_a(self.siguiente_ronda)
         elif self.estado in (VICTORIA, DERROTA) and avanzar:
+            self.ir_a(self.ir_a_galeria_final)
+        elif self.estado == GALERIA and self.galeria_desde_final and avanzar:
             self.ir_a(self.ir_al_top)
-        elif self.estado in (VICTORIA, DERROTA, TOP, GALERIA) and tecla in (pygame.K_r, pygame.K_ESCAPE):
+        elif self.estado == GALERIA and not self.galeria_desde_final and tecla in (pygame.K_r, pygame.K_ESCAPE):
+            self.ir_a(self.volver_a_portada)
+        elif self.estado == TOP and (avanzar or tecla in (pygame.K_r, pygame.K_ESCAPE)):
             self.ir_a(self.volver_a_portada)
 
     def elegir_gato(self, tecla, avanzar):
@@ -651,7 +696,7 @@ class Juego:
         mouse = pygame.mouse.get_pos()
         if self.estado == PORTADA:
             escenas.dibujar_portada(self.pantalla, self.fondo_cafeteria, self.fuentes, self.taza_muestra,
-                                    self.jurado, pelaje, mouse, self.t)
+                                    self.cafetera, self.jurado, pelaje, mouse, self.t)
         elif self.estado == NOMBRE:
             escenas.dibujar_nombre(self.pantalla, self.fondo_cafeteria, self.fuentes, self.nombre, self.jurado, self.t)
         elif self.estado == ELEGIR_GATO:
@@ -678,12 +723,14 @@ class Juego:
             escenas.dibujar_top(self.pantalla, self.fondo_cafeteria, self.fuentes, self.puntajes, self.puesto, self.t)
         elif self.estado == GALERIA:
             escenas.dibujar_galeria(self.pantalla, self.fondo_cafeteria, self.fuentes, self.galeria_datos,
-                                    self.galeria_fotos, self.tazas_vacias, self.t)
+                                    self.galeria_fotos, self.tazas_vacias, self.records_partida,
+                                    self.galeria_desde_final, self.t)
         elif self.estado == SIN_CAMARA:
             escenas.dibujar_sin_camara(self.pantalla, self.fondo_cafeteria, self.fuentes, self.camara.error)
         if self.boton_pantalla_visible():
             boton = pygame.Rect(RECT_BOTON_PANTALLA)
             dibujar_boton_pantalla_completa(self.pantalla, boton, boton.collidepoint(mouse))
+        self.actualizar_cursor(self.hay_algo_para_tocar(mouse))
         oscuridad = self.oscuridad_fundido()
         if oscuridad > 0:
             dibujar_velo(self.pantalla, COLOR_FUNDIDO + (oscuridad,))
