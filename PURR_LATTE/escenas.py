@@ -58,8 +58,8 @@ def dibujar_portada(pantalla, fondo, fuentes, taza_muestra, cafetera, jurado, pe
     panel = dibujar_panel(pantalla, (240, 20, 480, 140))
     titulo_con_sombra(pantalla, "Purr & Brew", fuentes["titulo"], (ANCHO // 2, panel.y + 52))
     texto_centrado(pantalla, "LATTE ART", fuentes["grande"], C["acento"], (ANCHO // 2, panel.y + 106))
-    # la cafetera apoyada SOBRE la mesada (la franja clara de la barra), no delante del zócalo
-    pantalla.blit(cafetera, cafetera.get_rect(midbottom=(276, 492)))
+    # la cafetera apoyada sobre la repisa verde de la pared (la "mesada"), al lado de la taza
+    pantalla.blit(cafetera, cafetera.get_rect(midbottom=(284, 386)))
     # La taza es un botón: con el mouse encima "sube" un poquito y se le marca el borde.
     encima = mouse_sobre_taza(mouse)
     alto = 8 if encima else 0

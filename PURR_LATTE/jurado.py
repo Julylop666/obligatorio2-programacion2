@@ -162,16 +162,23 @@ class Jurado:
             pantalla.blit(patita, (rect.x + columna * px, rect.y + 10 * px))
 
     def dibujar_saludo(self, pantalla, rect, paleta, px):
-        """El bracito levantado al costado de la cabeza y la patita yendo de un lado al otro (¡hola!)."""
+        """La patita levantada al costado de la cara, moviéndose de un lado al otro (¡hola!).
+
+        El bracito sale del hombro hacia afuera y sube hasta la patita, con forma de L (como un codo).
+        """
         patita = pixelar(_PATITA, paleta, px)
         # la patita se mueve de un lado al otro unas 3 veces por segundo
         lado = 1 if math.sin(self.tiempo * 9) > 0 else 0
-        x = rect.x - 5 * px + lado * 2 * px
-        y = rect.y - 2 * px
-        # el bracito: una columna de pelo (con borde) que sube desde el hombro hasta la patita
-        hombro_y = rect.y + 11 * px
-        pygame.draw.rect(pantalla, paleta["O"], (rect.x - 2 * px, y + 3 * px, 3 * px, hombro_y - y - 3 * px))
-        pygame.draw.rect(pantalla, paleta["F"], (rect.x - px, y + 3 * px, px, hombro_y - y - 3 * px))
+        x = rect.x - 6 * px + lado * px
+        y = rect.y + 5 * px                       # a la altura de la cara
+        borde, pelo = paleta["O"], paleta["F"]
+        codo_x = rect.x - 5 * px                  # donde el brazo dobla para subir
+        hombro_y = rect.y + 11 * px               # a la altura de los hombros
+        # tramo que sube (del codo a la patita) y tramo que va del codo al hombro
+        pygame.draw.rect(pantalla, borde, (codo_x, y + 3 * px, 3 * px, hombro_y - y))
+        pygame.draw.rect(pantalla, borde, (codo_x, hombro_y, rect.x + 4 * px - codo_x, 3 * px))
+        pygame.draw.rect(pantalla, pelo, (codo_x + px, y + 3 * px, px, hombro_y - y))
+        pygame.draw.rect(pantalla, pelo, (codo_x + px, hombro_y + px, rect.x + 3 * px - codo_x, px))
         pantalla.blit(patita, (x, y))
         # rayitas de movimiento del otro lado de la patita
         for i in range(2):
