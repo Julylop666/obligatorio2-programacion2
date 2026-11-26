@@ -292,6 +292,6 @@ ARCHIVOS_SONIDO = {
 }
 ARCHIVO_MUSICA = "musica_lofi.wav"
 VOLUMEN_EFECTOS = 0.8
-VOLUMEN_CHORRO = 0.5
+VOLUMEN_CHORRO = 0.35
 VOLUMEN_MUSICA = 0.45
 FUNDIDO_CHORRO = 80       # milisegundos de fundido al prender o apagar el chorro

@@ -22,6 +22,7 @@ from ajustes import RUTA_SONIDOS
 TASA = 22050             # muestras por segundo (alcanza para estos sonidos y pesa poco)
 RMS_EFECTOS = 0.09       # sonoridad pareja para todos los efectos
 RMS_MUSICA = 0.05        # la música más bajita, para que no tape los efectos
+RMS_CHORRO = 0.035       # el chorro suena todo el tiempo mientras vertés: tiene que ser suave
 TECHO_PICO = 0.85        # ningún sonido pasa de este pico (si no, distorsiona)
 
 
@@ -72,27 +73,59 @@ def campana(frecuencia, t, decaimiento):
     return onda * math.exp(-t * decaimiento)
 
 
-def generar_chorro():
-    """Chorro de leche de 2 segundos que se puede repetir sin cortes.
+def pasa_altos(muestras, factor):
+    """Filtro pasa-altos simple: a la señal le resto su versión suavizada (se quedan los agudos)."""
+    graves = pasa_bajos(muestras, factor)
+    salida = []
+    for i in range(len(muestras)):
+        salida.append(muestras[i] - graves[i])
+    return salida
 
-    Ruido filtrado (suena a líquido) que sube y baja un poquito (el "borboteo") más unas
-    burbujitas. Las ondulaciones usan frecuencias enteras, así en 2 segundos entran ciclos
-    completos y el final empalma justo con el principio del loop.
+
+def burbuja(frecuencia, t):
+    """Devuelve el sonido de un 'glup' en el instante t: un tono grave que sube apenas y se apaga suave."""
+    if t < 0:
+        return 0.0
+    tono = frecuencia * (1 + 0.8 * t)            # sube un poquito de tono mientras suena
+    return math.sin(2 * math.pi * tono * t) * math.exp(-t * 18)
+
+
+def generar_chorro():
+    """Chorro de leche suave, de 2 segundos, que se repite sin cortes.
+
+    La idea es que sea agradable, no fiel: leche cayendo despacito.
+      - Un "shhh" grave: ruido filtrado DOS veces con un pasa-bajos, así no le quedan agudos
+        (los agudos son los que hacen ese "fuzz" molesto). Le saco también lo más grave de
+        todo para que no retumbe.
+      - Unos pocos "glups" graves y bajitos, que le dan el toque de líquido.
+    Para que el loop no tenga costura, genero un poco más largo y el final se funde con el
+    principio (mientras uno baja, el otro sube).
     """
     azar = random.Random(30)
     total = 2 * TASA
-    ruido = pasa_bajos([azar.uniform(-1, 1) for _ in range(total)], 0.16)
+    extra = int(0.4 * TASA)                       # lo que se funde al final
+    largo = total + extra
+    shhh = pasa_bajos(pasa_bajos([azar.uniform(-1, 1) for _ in range(largo)], 0.07), 0.07)
+    shhh = pasa_altos(shhh, 0.02)                 # saco el retumbe
+    # vaivén lento al azar, para que el chorro "respire" y no sea un ruido parejo
+    vaiven = pasa_bajos([azar.uniform(0.6, 1.0) for _ in range(largo)], 0.0005)
     muestras = []
-    for i in range(total):
-        t = i / TASA
-        borboteo = 0.75 + 0.15 * math.sin(2 * math.pi * 6 * t) + 0.1 * math.sin(2 * math.pi * 11 * t)
-        muestras.append(ruido[i] * borboteo)
-    for inicio in (0.15, 0.48, 0.9, 1.3, 1.7):        # burbujitas que suben de tono
-        for i in range(int(0.06 * TASA)):
-            t = i / TASA
-            pos = int(inicio * TASA) + i
-            muestras[pos] += math.sin(2 * math.pi * 400 * (1 + 3 * t) * t) * math.exp(-t * 50) * 0.08
-    return muestras
+    for i in range(largo):
+        muestras.append(shhh[i] * vaiven[i])
+    # pocos glups (unos 5 por segundo), graves y suaves
+    largo_glup = int(0.25 * TASA)
+    for _ in range(11):
+        inicio = azar.randint(0, total - 1)
+        frecuencia = azar.uniform(170, 320)
+        fuerza = azar.uniform(0.02, 0.05)
+        for i in range(largo_glup):
+            if inicio + i < largo:
+                muestras[inicio + i] += burbuja(frecuencia, i / TASA) * fuerza
+    # el final se funde con el principio: así cuando el loop vuelve a empezar no hay salto
+    for i in range(extra):
+        mezcla = i / extra
+        muestras[i] = muestras[i] * mezcla + muestras[total + i] * (1 - mezcla)
+    return muestras[:total]
 
 
 def generar_ding():
@@ -187,7 +220,7 @@ def generar_musica():
 
 
 if __name__ == "__main__":
-    guardar("chorro.wav", generar_chorro(), fundido=False)
+    guardar("chorro.wav", generar_chorro(), RMS_CHORRO, fundido=False)
     guardar("ding.wav", generar_ding())
     guardar("campanita.wav", generar_campanita())
     guardar("miau_triste.wav", generar_miau_triste())
