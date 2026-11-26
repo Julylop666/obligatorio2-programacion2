@@ -54,12 +54,12 @@ Si la cámara no abre al iniciar, aparece una pantalla que explica qué revisar 
 | Enter / Espacio | Avanzar en los menús |
 | Teclado | Escribir tu nombre (Borrar corrige) |
 | Flechas izquierda / derecha | Elegir el color del gatito |
-| Esc | Pausar y seguir (en la pantalla de "sin cámara", cierra) |
+| P o Esc | Pausa. En la pausa: flechas arriba/abajo para elegir, izquierda/derecha (o los botones − y +) para cambiar el volumen de la música y de los sonidos por separado, Enter para elegir. (En la pantalla de "sin cámara", Esc cierra.) |
 | R | Volver a jugar desde la victoria, la derrota o el top (también desde la pausa) sin cerrar la ventana |
 | Flechas en el tutorial | Página anterior / siguiente (Esc lo saltea) |
 | T / G | Ver el top / la galería desde la portada |
 | F11 o el botón de arriba a la izquierda | Pantalla completa (y volver a ventana) |
-| M / N | Música on/off / Sonidos on/off |
+| M / N | Silenciar la música / los sonidos (y volver al volumen que tenían) |
 | X de la ventana | Cerrar el juego (libera la cámara) |
 
 ### Estados del juego
@@ -114,12 +114,12 @@ Si aparece un error con `cv2`, puede ser que estén instalados `opencv-python` y
 | `vision.py` | Todo lo de OpenCV y MediaPipe, en la clase `Camara`: abrir la cámara, leer y espejar el cuadro (`flip`), detectar la mano (`detectar()` devuelve `(x, y)` o `None`), `hay_pellizco()`, `tamano_mano()` (cerca o lejos), `puntas_dedos()`, la miniatura y `liberar()`. |
 | `latte.py` | Clase `Taza`: el café, los 5 dibujos hechos con figuras en código, la máscara del dibujo, la leche vertida y el puntaje. Función `calcular_estrellas`. |
 | `particulas.py` | Clase `Particula` (gota de leche que cae y se abre en espuma, más o menos según el grosor) y las funciones `segun_grosor`, `crear_gotas` y `actualizar_particulas` (la lista que cambia). |
-| `jurado.py` | Clase `Jurado` (Don Salmón): su cara según el %, los comentarios en vivo (globito) y las animaciones de cada cara (respira, salta y aplaude, suda, olorcitos, llora). |
+| `jurado.py` | Clase `Jurado` (Don Salmón): su cara según el %, los comentarios en vivo (globito) y las animaciones de cada cara (respira, saluda con la patita, salta y aplaude, suda, olorcitos, llora). |
 | `puntajes.py` | El top: lee y guarda los puntajes en `puntajes.json` (con el módulo `json` de Python). |
 | `galeria.py` | La galería: guarda la foto de la mejor taza de cada dibujo (`galeria/*.png`) y quién la hizo (`galeria/galeria.json`). |
 | `tutorial.py` | Clase `Tutorial`: las 6 páginas de Don Salmón, cada una con su ilustración (algunas con la cámara en vivo). |
 | `dibujo.py` | Pixel art y piezas de interfaz: `pixelar`, paneles, textos, barras, estrellas, la jarra con la patita, los gatos de Purr & Brew con sus caras, los fondos y la miniatura de la cámara. |
-| `escenas.py` | Qué se dibuja en cada estado: portada (con botones y el saludo de Don Salmón), nombre, elegir gato, HUD, cuenta regresiva, "¡Mostrá la pata!", pausa, resultado, victoria, derrota, top, galería y aviso de cámara. |
+| `escenas.py` | Qué se dibuja en cada estado: portada (con botones y el saludo de Don Salmón), nombre, elegir gato, HUD, cuenta regresiva, "¡Mostrá la pata!", pausa con volumen, resultado, victoria, derrota, top, galería y aviso de cámara. |
 | `generar_sonidos.py` | Crea todos los `.wav` con matemática (ondas seno, ruido y envolventes). |
 | `prueba_camara.py` | Prueba suelta de la cámara: muestra el punto del dedo, si hay pellizco y el tamaño de la mano. |
 
@@ -146,4 +146,5 @@ Si aparece un error con `cv2`, puede ser que estén instalados `opencv-python` y
   6. "Altura de la jarra con la distancia de la mano: cerca = chorro grueso, lejos = chorro fino." (tercera versión)
   7. "Mejorar la perspectiva cuando pellizcás, botón de pantalla completa, más leche para poder llegar al 100%, galería de los mejores artes, botón de inicio con transición y un tutorial más explicado, como el de Purr & Brew." (cuarta versión)
   8. "Que la taza de la portada también sea el botón de empezar, que al final vaya siempre a la galería, una portada más linda y una patita que se entienda." (quinta versión)
+  9. "Pausa con la P, con volumen de la música y de los sonidos por separado; Don Salmón saludando con la mano en la portada." (sexta versión)
 - **Cita (APA):** Claude. (2026). *Prompts utilizados para la programación del juego Purr & Brew: Latte Art* [Generación de código]. Anthropic. Recuperado de https://claude.ai

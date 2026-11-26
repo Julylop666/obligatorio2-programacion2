@@ -7,13 +7,14 @@ Estados:
   VICTORIA / DERROTA -> GALERIA (siempre) -> TOP -> PORTADA, sin cerrar la ventana.
   Desde la portada también se va al TOP y a la GALERIA (las mejores tazas de cada dibujo).
   Si la cámara no abre: SIN_CAMARA (un aviso claro en vez de un error).
-Dentro de JUGANDO hay dos "pausas": la de Esc y la de cuando la cámara no ve la mano (None).
+Dentro de JUGANDO hay dos "pausas": la de P o Esc (con el menú de volumen) y la de cuando la
+cámara no ve la mano (None).
 Entre pantallas hay una transición: la pantalla se oscurece, cambia y se vuelve a aclarar.
 
 La mano se usa así: el punto entre el índice y el pulgar es la jarra y el pellizco vierte.
 Además, la distancia de la mano a la cámara es la altura de la jarra: cerca = chorro grueso,
 lejos = chorro fino (como hacen los baristas para los detalles).
-El teclado y el mouse solo sirven para los menús (botones, Enter/Espacio, flechas, R, T, G, Esc,
+El teclado y el mouse solo sirven para los menús (botones, Enter/Espacio, flechas, R, T, G, P, Esc,
 M, N, F11) y para escribir el nombre.
 """
 import math
@@ -137,8 +138,13 @@ class Juego:
         self.cafetera = crear_cafetera()
         self.camara = Camara()
         self.sonidos = cargar_sonidos()
-        self.musica_on = iniciar_musica()
-        self.sonidos_on = True
+        iniciar_musica()
+        # volumen de la música y de los sonidos, cada uno de 0 (mudo) a 1 (al máximo)
+        self.volumen_musica = 1.0
+        self.volumen_efectos = 1.0
+        self.musica_guardada = 1.0               # para volver al volumen anterior después de M
+        self.efectos_guardados = 1.0             # y después de N
+        self.opcion_pausa = 0                    # qué renglón del menú de pausa está elegido
         self.canal_chorro = pygame.mixer.Channel(0) if pygame.mixer.get_init() else None
         if self.canal_chorro is not None:
             pygame.mixer.set_reserved(1)         # el canal 0 queda solo para el chorro
@@ -187,7 +193,7 @@ class Juego:
         self.pausado = False
         self.taza = Taza(RONDAS[0]["dibujo"])
         self.particulas = []
-        self.jurado.reiniciar(CONTENTO)
+        self.jurado.reiniciar(SALUDA)             # en la portada Don Salmón saluda
         self.parar_chorro()
 
     def empezar_ronda(self, numero):
@@ -332,18 +338,18 @@ class Juego:
     # ------------------------------------------------------------ sonido
     def reproducir(self, clave):
         """Hace sonar un efecto si existe y si los sonidos están prendidos."""
-        if self.sonidos_on and clave in self.sonidos:
+        if self.volumen_efectos > 0 and clave in self.sonidos:
             self.sonidos[clave].play()
 
     def actualizar_chorro(self, vertiendo):
         """Prende o apaga el sonido del chorro según si estás vertiendo."""
         if self.canal_chorro is None or "chorro" not in self.sonidos:
             return
-        if vertiendo and self.sonidos_on and not self.chorro_sonando:
+        if vertiendo and self.volumen_efectos > 0 and not self.chorro_sonando:
             # loops=-1: el chorro se repite mientras sigas vertiendo
             self.canal_chorro.play(self.sonidos["chorro"], loops=-1, fade_ms=FUNDIDO_CHORRO)
             self.chorro_sonando = True
-        elif not vertiendo or not self.sonidos_on:
+        elif not vertiendo or self.volumen_efectos == 0:
             self.parar_chorro()
 
     def parar_chorro(self):
@@ -352,21 +358,93 @@ class Juego:
             self.canal_chorro.fadeout(FUNDIDO_CHORRO)
         self.chorro_sonando = False
 
-    def alternar_musica(self):
-        """M: prende o apaga la música de fondo."""
+    def aplicar_volumenes(self):
+        """Le pasa a pygame los volúmenes elegidos (multiplicados por el volumen base de ajustes.py)."""
         if not pygame.mixer.get_init():
             return
-        self.musica_on = not self.musica_on
-        if self.musica_on:
-            pygame.mixer.music.unpause()
+        pygame.mixer.music.set_volume(VOLUMEN_MUSICA * self.volumen_musica)
+        for clave, sonido in self.sonidos.items():
+            base = VOLUMEN_CHORRO if clave == "chorro" else VOLUMEN_EFECTOS
+            sonido.set_volume(base * self.volumen_efectos)
+        if self.volumen_efectos == 0:
+            self.parar_chorro()
+
+    def cambiar_volumen(self, cual, cambio):
+        """Sube o baja el volumen de 'musica' o de 'efectos' (cambio = +PASO_VOLUMEN o -PASO_VOLUMEN)."""
+        if cual == "musica":
+            # round: así no quedan números como 0.30000000004 de tanto sumar 0.1
+            self.volumen_musica = round(max(0.0, min(1.0, self.volumen_musica + cambio)), 1)
         else:
-            pygame.mixer.music.pause()
+            self.volumen_efectos = round(max(0.0, min(1.0, self.volumen_efectos + cambio)), 1)
+        self.aplicar_volumenes()
+
+    def alternar_musica(self):
+        """M: deja la música muda o le devuelve el volumen que tenía antes."""
+        if self.volumen_musica > 0:
+            self.musica_guardada = self.volumen_musica
+            self.volumen_musica = 0.0
+        else:
+            self.volumen_musica = self.musica_guardada or 1.0
+        self.aplicar_volumenes()
 
     def alternar_sonidos(self):
-        """N: prende o apaga los efectos (y corta el chorro si estaba sonando)."""
-        self.sonidos_on = not self.sonidos_on
-        if not self.sonidos_on:
-            self.parar_chorro()
+        """N: deja los sonidos mudos o les devuelve el volumen que tenían antes."""
+        if self.volumen_efectos > 0:
+            self.efectos_guardados = self.volumen_efectos
+            self.volumen_efectos = 0.0
+        else:
+            self.volumen_efectos = self.efectos_guardados or 1.0
+        self.aplicar_volumenes()
+
+    # ------------------------------------------------------------ pausa
+    def pausar(self):
+        """Pone o saca la pausa (teclas P o Esc). Al pausar se corta el chorro."""
+        self.pausado = not self.pausado
+        self.opcion_pausa = 0
+        self.parar_chorro()
+
+    def elegir_en_pausa(self, opcion):
+        """Hace lo que dice el renglón 'opcion' del menú de pausa (Enter o clic)."""
+        accion = escenas.OPCIONES_PAUSA[opcion]
+        if accion == "seguir":
+            self.pausar()
+        elif accion == "pantalla":
+            pygame.display.toggle_fullscreen()
+        elif accion == "portada":
+            self.ir_a(self.volver_a_portada)
+
+    def teclas_pausa(self, tecla, avanzar):
+        """En la pausa: flechas arriba/abajo eligen, izquierda/derecha cambian el volumen, Enter elige."""
+        cantidad = len(escenas.OPCIONES_PAUSA)
+        accion = escenas.OPCIONES_PAUSA[self.opcion_pausa]
+        if tecla in (pygame.K_ESCAPE, pygame.K_p):
+            self.pausar()
+        elif tecla == pygame.K_r:
+            self.ir_a(self.volver_a_portada)
+        elif tecla == pygame.K_UP:
+            self.opcion_pausa = (self.opcion_pausa - 1) % cantidad
+        elif tecla == pygame.K_DOWN:
+            self.opcion_pausa = (self.opcion_pausa + 1) % cantidad
+        elif tecla in (pygame.K_LEFT, pygame.K_RIGHT) and accion in ("musica", "efectos"):
+            cambio = PASO_VOLUMEN if tecla == pygame.K_RIGHT else -PASO_VOLUMEN
+            self.cambiar_volumen(accion, cambio)
+        elif avanzar:
+            self.elegir_en_pausa(self.opcion_pausa)
+
+    def clic_en_pausa(self, pos):
+        """Atiende un clic en el menú de pausa: los renglones y los botoncitos de - y +."""
+        rects = escenas.rects_pausa()
+        for i, accion in enumerate(escenas.OPCIONES_PAUSA):
+            if accion in ("musica", "efectos"):
+                if rects[accion + "_menos"].collidepoint(pos):
+                    self.opcion_pausa = i
+                    self.cambiar_volumen(accion, -PASO_VOLUMEN)
+                elif rects[accion + "_mas"].collidepoint(pos):
+                    self.opcion_pausa = i
+                    self.cambiar_volumen(accion, PASO_VOLUMEN)
+            elif rects[accion].collidepoint(pos):
+                self.opcion_pausa = i
+                self.elegir_en_pausa(i)
 
     # ------------------------------------------------------------ eventos
     def escribir_nombre(self, evento):
@@ -384,12 +462,14 @@ class Juego:
                 self.ir_a(self.volver_a_portada)
 
     def boton_pantalla_visible(self):
-        """Devuelve True si se ve el botón de pantalla completa (en la ronda solo aparece en la pausa)."""
-        return self.estado != JUGANDO or self.pausado
+        """Devuelve True si se ve el botón de pantalla completa (en la ronda no: está adentro de la pausa)."""
+        return self.estado != JUGANDO
 
     def clic(self, pos):
         """Atiende un clic del mouse: el botón de pantalla completa y los botones de los menús."""
-        if self.boton_pantalla_visible() and pygame.Rect(RECT_BOTON_PANTALLA).collidepoint(pos):
+        if self.estado == JUGANDO and self.pausado:
+            self.clic_en_pausa(pos)
+        elif self.boton_pantalla_visible() and pygame.Rect(RECT_BOTON_PANTALLA).collidepoint(pos):
             pygame.display.toggle_fullscreen()
         elif self.estado == PORTADA:
             # se puede empezar con el botón o tocando directamente la taza de café
@@ -433,6 +513,10 @@ class Juego:
             return escenas.mouse_sobre_taza(pos)
         if self.estado == TUTORIAL:
             return self.tutorial.boton_en(pos) is not None
+        if self.estado == JUGANDO and self.pausado:
+            for rect in escenas.rects_pausa().values():
+                if rect.collidepoint(pos):
+                    return True
         return False
 
     def manejar_evento(self, evento):
@@ -472,11 +556,10 @@ class Juego:
             self.elegir_gato(tecla, avanzar)
         elif self.estado == TUTORIAL:
             self.teclas_tutorial(tecla, avanzar)
-        elif self.estado == JUGANDO and tecla == pygame.K_ESCAPE:
-            self.pausado = not self.pausado
-            self.parar_chorro()
-        elif self.estado == JUGANDO and self.pausado and tecla == pygame.K_r:
-            self.ir_a(self.volver_a_portada)
+        elif self.estado == JUGANDO and self.pausado:
+            self.teclas_pausa(tecla, avanzar)
+        elif self.estado == JUGANDO and tecla in (pygame.K_ESCAPE, pygame.K_p):
+            self.pausar()
         elif self.estado == RESULTADO_RONDA and avanzar and self.estrellas_visibles == self.estrellas_ronda:
             self.ir_a(self.siguiente_ronda)
         elif self.estado in (VICTORIA, DERROTA) and avanzar:
@@ -684,7 +767,8 @@ class Juego:
                             self.pellizco, self.jurado, self.porcentaje, self.leche / datos["leche"],
                             self.tiempo / datos["tiempo"], servir)
         if self.pausado:
-            escenas.dibujar_pausa(self.pantalla, self.fuentes)
+            escenas.dibujar_pausa(self.pantalla, self.fuentes, self.opcion_pausa, self.volumen_musica,
+                                  self.volumen_efectos, pygame.mouse.get_pos())
         elif self.tiempo_sin_mano > TOLERANCIA_SIN_MANO:
             escenas.dibujar_sin_mano(self.pantalla, self.fuentes)
         elif self.cuenta > 0:

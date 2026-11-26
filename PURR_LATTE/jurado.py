@@ -4,14 +4,14 @@ Es el mismo gato de Purr & Brew (pelaje salmón, anteojos y chaleco verde). Tien
   - una cara "de base" según cómo va el porcentaje (neutral, contento o llorando de emoción);
   - comentarios puntuales cuando pasa algo (derramaste, queda poca leche, ganaste una estrella...):
     durante unos segundos pone otra cara, cambia de animación y lo dice en un globito.
-Animaciones: respira, parpadea, salta y aplaude, se le cae una gotita de sudor, le salen
-olorcitos verdes, llora de emoción.
+Animaciones: respira, parpadea, saluda con la patita, salta y aplaude, se le cae una gotita
+de sudor, le salen olorcitos verdes, llora de emoción.
 """
 import math
 import random
 import pygame
 from ajustes import (COLORES as C, COLOR_DON_SALMON, COLOR_OJOS, PX_GATO, NEUTRAL, CONTENTO, PREOCUPADO,
-                     ASCO, LLORA, FRASES_CARA, COMENTARIOS, DURACION_COMENTARIO, ESPERA_MISMO_COMENTARIO,
+                     ASCO, LLORA, SALUDA, FRASES_CARA, COMENTARIOS, DURACION_COMENTARIO, ESPERA_MISMO_COMENTARIO,
                      TIEMPO_MIN_REACCION, VELOCIDAD_RESPIRO, CADA_PARPADEO, DURACION_PARPADEO,
                      VELOCIDAD_APLAUSO, ALTURA_SALTO, UMBRALES_ESTRELLAS, UMBRAL_ASCO)
 from dibujo import pixelar, dibujar_gato, oscurecer, aclarar
@@ -127,7 +127,7 @@ class Jurado:
             x += px // 2 if int(self.tiempo * 12) % 2 == 0 else -px // 2   # tiembla de emoción
         elif math.sin(self.tiempo * VELOCIDAD_RESPIRO * math.pi) > 0:
             y -= px // 2                                              # respira
-        dibujo_cara = cara
+        dibujo_cara = "contento" if cara == SALUDA else cara
         if cara in (NEUTRAL, PREOCUPADO) and (self.tiempo % CADA_PARPADEO) < DURACION_PARPADEO:
             dibujo_cara = "parpadeo"
         rect = dibujar_gato(pantalla, (x, y), COLOR_DON_SALMON, px, dibujo_cara, COLOR_OJOS,
@@ -137,6 +137,12 @@ class Jurado:
                   "A": C["acento"]}
         if cara == CONTENTO:
             self.dibujar_aplauso(pantalla, rect, paleta, px)
+        elif cara == SALUDA:
+            # saluda con la pata izquierda (la que da al centro de la pantalla) y la tablita
+            # queda en la otra mano
+            tabla = pixelar(_TABLA, paleta, px)
+            pantalla.blit(tabla, (rect.right - 4 * px, rect.y + 10 * px))
+            self.dibujar_saludo(pantalla, rect, paleta, px)
         else:
             tabla = pixelar(_TABLA, paleta, px)
             pantalla.blit(tabla, (rect.x - 2 * px, rect.y + 10 * px))
@@ -154,6 +160,22 @@ class Jurado:
         columnas = (4, 7) if juntas else (2, 9)
         for columna in columnas:
             pantalla.blit(patita, (rect.x + columna * px, rect.y + 10 * px))
+
+    def dibujar_saludo(self, pantalla, rect, paleta, px):
+        """El bracito levantado al costado de la cabeza y la patita yendo de un lado al otro (¡hola!)."""
+        patita = pixelar(_PATITA, paleta, px)
+        # la patita se mueve de un lado al otro unas 3 veces por segundo
+        lado = 1 if math.sin(self.tiempo * 9) > 0 else 0
+        x = rect.x - 5 * px + lado * 2 * px
+        y = rect.y - 2 * px
+        # el bracito: una columna de pelo (con borde) que sube desde el hombro hasta la patita
+        hombro_y = rect.y + 11 * px
+        pygame.draw.rect(pantalla, paleta["O"], (rect.x - 2 * px, y + 3 * px, 3 * px, hombro_y - y - 3 * px))
+        pygame.draw.rect(pantalla, paleta["F"], (rect.x - px, y + 3 * px, px, hombro_y - y - 3 * px))
+        pantalla.blit(patita, (x, y))
+        # rayitas de movimiento del otro lado de la patita
+        for i in range(2):
+            pygame.draw.rect(pantalla, C["texto"], (x - 2 * px, y + i * 2 * px, px, px))
 
     def dibujar_sudor(self, pantalla, rect, px):
         """Una gotita celeste que cae al costado de la cabeza y un signo de exclamación arriba."""

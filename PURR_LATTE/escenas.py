@@ -58,7 +58,8 @@ def dibujar_portada(pantalla, fondo, fuentes, taza_muestra, cafetera, jurado, pe
     panel = dibujar_panel(pantalla, (240, 20, 480, 140))
     titulo_con_sombra(pantalla, "Purr & Brew", fuentes["titulo"], (ANCHO // 2, panel.y + 52))
     texto_centrado(pantalla, "LATTE ART", fuentes["grande"], C["acento"], (ANCHO // 2, panel.y + 106))
-    pantalla.blit(cafetera, cafetera.get_rect(midbottom=(276, 478)))
+    # la cafetera apoyada SOBRE la mesada (la franja clara de la barra), no delante del zócalo
+    pantalla.blit(cafetera, cafetera.get_rect(midbottom=(276, 492)))
     # La taza es un botón: con el mouse encima "sube" un poquito y se le marca el borde.
     encima = mouse_sobre_taza(mouse)
     alto = 8 if encima else 0
@@ -191,14 +192,56 @@ def dibujar_sin_mano(pantalla, fuentes):
                    (caja.centerx, caja.y + 126))
 
 
-def dibujar_pausa(pantalla, fuentes):
-    """Menú de pausa (Esc)."""
+# Los renglones del menú de pausa, en orden (main.py usa esta misma lista para saber qué hacer).
+OPCIONES_PAUSA = ["seguir", "musica", "efectos", "pantalla", "portada"]
+TEXTOS_PAUSA = {"seguir": "Seguir jugando", "musica": "Música", "efectos": "Sonidos",
+                "pantalla": "Pantalla completa", "portada": "Volver a la portada"}
+
+
+def rects_pausa():
+    """Devuelve un diccionario con el rectángulo de cada cosa que se puede tocar en la pausa.
+
+    La uso para dibujar el menú Y para saber dónde hiciste clic: así las dos cosas siempre
+    coinciden (si muevo un botón, se mueve en los dos lados).
+    """
+    rects = {}
+    for i, opcion in enumerate(OPCIONES_PAUSA):
+        fila = pygame.Rect(300, 186 + i * 64, 360, 48)
+        rects[opcion] = fila
+        if opcion in ("musica", "efectos"):
+            rects[opcion + "_menos"] = pygame.Rect(fila.x + 124, fila.y + 4, 40, 40)
+            rects[opcion + "_mas"] = pygame.Rect(fila.right - 44, fila.y + 4, 40, 40)
+    return rects
+
+
+def dibujar_pausa(pantalla, fuentes, opcion, volumen_musica, volumen_efectos, mouse):
+    """Menú de pausa (P o Esc): seguir, volumen de la música, volumen de los sonidos, pantalla
+    completa y volver a la portada. 'opcion' es el renglón elegido con las flechas.
+    """
     dibujar_velo(pantalla, COLOR_VELO)
-    caja = dibujar_panel(pantalla, (280, 190, 400, 250))
-    titulo_con_sombra(pantalla, "Pausa", fuentes["grande"], (caja.centerx, caja.y + 50))
-    lineas = ["Esc: seguir jugando", "R: volver a la portada", "M: música  ·  N: sonidos", "F11: pantalla completa"]
-    for i, linea in enumerate(lineas):
-        texto_centrado(pantalla, linea, fuentes["normal"], C["texto"], (caja.centerx, caja.y + 108 + i * 34))
+    caja = dibujar_panel(pantalla, (260, 100, 440, 470))
+    titulo_con_sombra(pantalla, "Pausa", fuentes["grande"], (caja.centerx, caja.y + 46))
+    rects = rects_pausa()
+    volumenes = {"musica": volumen_musica, "efectos": volumen_efectos}
+    for i, nombre in enumerate(OPCIONES_PAUSA):
+        fila = rects[nombre]
+        elegido = i == opcion or fila.collidepoint(mouse)
+        if nombre in volumenes:
+            # renglón de volumen: nombre, botón -, barrita y botón +
+            if elegido:
+                dibujar_panel(pantalla, fila, C["dorado"], C["brillo_dorado"])
+            pantalla.blit(fuentes["normal"].render(TEXTOS_PAUSA[nombre], False, C["texto"]), (fila.x + 14, fila.y + 9))
+            menos = rects[nombre + "_menos"]
+            mas = rects[nombre + "_mas"]
+            dibujar_boton(pantalla, menos, "-", fuentes["normal"], menos.collidepoint(mouse), C["panel"])
+            dibujar_boton(pantalla, mas, "+", fuentes["normal"], mas.collidepoint(mouse), C["panel"])
+            barra = (menos.right + 12, fila.centery - 8, mas.x - menos.right - 24, 16)
+            dibujar_barra(pantalla, barra, volumenes[nombre], C["acento"])
+        else:
+            dibujar_boton(pantalla, fila, TEXTOS_PAUSA[nombre], fuentes["normal"], elegido,
+                          C["dorado"] if elegido else C["panel"])
+    texto_centrado(pantalla, "Flechas: elegir y cambiar  ·  P o Esc: seguir", fuentes["chica"],
+                   C["texto"], (caja.centerx, caja.bottom - 24))
 
 
 # ---------------------------------------------------------------- resultado y fin de partida

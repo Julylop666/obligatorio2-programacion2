@@ -209,7 +209,7 @@ def ilus_teclas(pantalla, fuentes, vivo, t):
     texto_centrado(pantalla, "El tiempo está congelado.", fuentes["chica"], C["acento"], (cartel.centerx, cartel.y + 90))
     texto_envuelto(pantalla, "Si sacás la mano de la cámara, el juego se pausa solo y te espera.",
                    fuentes["chica"], C["texto"], (x0 + 30, y0 + 176, 340, 90))
-    teclas = [("Esc", "Pausa"), ("F11", "Pantalla completa"), ("M", "Música sí / no"), ("N", "Sonidos sí / no")]
+    teclas = [("P", "Pausa y volumen"), ("F11", "Pantalla completa"), ("M", "Música sí / no"), ("N", "Sonidos sí / no")]
     for i, (nombre, que_hace) in enumerate(teclas):
         y = y0 + 40 + i * 64
         tecla(pantalla, fuentes, (x0 + 480, y), nombre, 72)
@@ -239,8 +239,8 @@ PAGINAS = [
      "Cuando te guste cómo quedó, sacá la jarra de la taza y se sirve.",
      ilus_cuidado),
     ("Si no te veo, te espero",
-     "Si sacás la mano de la cámara, pauso todo hasta que vuelvas. Esto es todo: ¡a demostrar lo que sabés! "
-     "Yo voy a estar mirando, eh.",
+     "Si sacás la mano de la cámara, pauso todo hasta que vuelvas. Con la P (o Esc) pausás vos y podés "
+     "cambiar el volumen. ¡A demostrar lo que sabés! Yo voy a estar mirando, eh.",
      ilus_teclas),
 ]
 

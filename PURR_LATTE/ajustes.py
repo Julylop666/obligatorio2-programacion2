@@ -218,6 +218,7 @@ CONTENTO = "contento"       # salta y aplaude
 PREOCUPADO = "preocupado"   # gotita de sudor y signo de exclamación
 ASCO = "asco"               # olorcitos verdes y se sacude
 LLORA = "llora"             # lágrimas de emoción
+SALUDA = "saluda"           # mueve la patita saludando (portada y nombre)
 # Lo que dice según cómo va el % (cuando no está comentando algo puntual)
 FRASES_CARA = {
     NEUTRAL: "A ver, a ver...",
@@ -225,6 +226,7 @@ FRASES_CARA = {
     PREOCUPADO: "Mmm...",
     ASCO: "Uf...",
     LLORA: "¡Es arte! *snif*",
+    SALUDA: "¡Hola, hola!",
 }
 # Comentarios en vivo: evento -> (cara que pone, frases posibles). Se elige una frase al azar.
 COMENTARIOS = {
@@ -294,4 +296,5 @@ ARCHIVO_MUSICA = "musica_lofi.wav"
 VOLUMEN_EFECTOS = 0.8
 VOLUMEN_CHORRO = 0.35
 VOLUMEN_MUSICA = 0.45
+PASO_VOLUMEN = 0.1        # cuánto sube o baja el volumen cada vez que tocás + o - en la pausa
 FUNDIDO_CHORRO = 80       # milisegundos de fundido al prender o apagar el chorro
