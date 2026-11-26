@@ -125,9 +125,8 @@ ZONA_JARRA = (30, 50, 600, 580)
 # miniatura de la cámara
 TAM_MINIATURA = (224, 168)
 POS_MINIATURA = (688, 24)
-PIXEL_MINIATURA = 3       # la imagen de la cámara también se pixela, para que combine
-TAM_CAMARA_INSTRUCCIONES = (384, 288)
-POS_CAMARA_INSTRUCCIONES = (48, 150)
+PIXEL_MINIATURA = 2       # la imagen de la cámara también se pixela un poquito, para que combine
+TAM_CAMARA_TUTORIAL = (320, 240)
 
 # ---------------------------------------------------------------- leche y partículas
 CAUDAL_LECHE = 80         # gotas por segundo mientras hay pellizco
@@ -158,20 +157,23 @@ ELEVACION_BAJA = 34       # y cuando es grueso (la jarra se ve más cerca de la 
 # ---------------------------------------------------------------- puntaje y reglas
 # % = cobertura del dibujo - PENALIZACION_FUERA * (leche fuera del dibujo / tamaño del dibujo)
 PENALIZACION_FUERA = 0.4
-UMBRALES_ESTRELLAS = (40, 60, 80)   # % para 1, 2 y 3 estrellas (1 estrella = pasás la ronda)
+MARGEN_TOLERANCIA = 2     # pixeles del arte alrededor del dibujo donde la leche NO resta
+UMBRALES_ESTRELLAS = (40, 65, 85)   # % para 1, 2 y 3 estrellas (1 estrella = pasás la ronda)
 LIMITE_DESBORDE = 1.0     # perdés si la leche afuera del dibujo ya ocupa lo mismo que el dibujo entero
 CUENTA_REGRESIVA = 3      # segundos de "3, 2, 1" antes de cada ronda (para acomodar la mano)
-TIEMPO_SERVIR = 1.5       # con 3 estrellas, si dejás de verter este tiempo, la taza se sirve sola
+# Servir: cuando ya tenés al menos 1 estrella, sacás la jarra de la taza (sin verter) y te
+# quedás así este tiempo. Con 100% se sirve sola (no se puede mejorar).
+TIEMPO_SERVIR = 1.5
 
 # Las 5 rondas del concurso, en el orden en que aprenden los baristas de verdad:
 # corazón -> tulipán (círculos apilados) -> rosetta (hoja con capas) -> cisne -> cara de gato.
 # tiempo = segundos hasta que el café se enfría; leche = cantidad de gotas de la jarra.
 RONDAS = [
-    {"dibujo": "corazon", "nombre": "Corazón", "tiempo": 60, "leche": 900},
-    {"dibujo": "tulipan", "nombre": "Tulipán", "tiempo": 65, "leche": 950},
-    {"dibujo": "rosetta", "nombre": "Rosetta", "tiempo": 75, "leche": 1100},
-    {"dibujo": "cisne", "nombre": "Cisne", "tiempo": 75, "leche": 1050},
-    {"dibujo": "gato", "nombre": "Cara de gato", "tiempo": 80, "leche": 1150},
+    {"dibujo": "corazon", "nombre": "Corazón", "tiempo": 70, "leche": 1600},
+    {"dibujo": "tulipan", "nombre": "Tulipán", "tiempo": 75, "leche": 1400},
+    {"dibujo": "rosetta", "nombre": "Rosetta", "tiempo": 85, "leche": 1800},
+    {"dibujo": "cisne", "nombre": "Cisne", "tiempo": 85, "leche": 1500},
+    {"dibujo": "gato", "nombre": "Cara de gato", "tiempo": 90, "leche": 1800},
 ]
 
 # ---------------------------------------------------------------- jugador: nombre, gato y top
@@ -183,18 +185,21 @@ PELAJES = [                                # los mismos 4 gatos de Purr & Brew (
 ]
 LARGO_MAXIMO_NOMBRE = 12
 RUTA_PUNTAJES = os.path.join(RUTA_BASE, "puntajes.json")
+RUTA_GALERIA = os.path.join(RUTA_BASE, "galeria")          # carpeta con las fotos de las mejores tazas
+RUTA_GALERIA_JSON = os.path.join(RUTA_GALERIA, "galeria.json")
 CANTIDAD_TOP = 8                          # cuántos puestos se muestran en el top
 
 # ---------------------------------------------------------------- estados del juego
 PORTADA = "PORTADA"
 NOMBRE = "NOMBRE"
 ELEGIR_GATO = "ELEGIR_GATO"
-INSTRUCCIONES = "INSTRUCCIONES"
+TUTORIAL = "TUTORIAL"
 JUGANDO = "JUGANDO"
 RESULTADO_RONDA = "RESULTADO_RONDA"
 VICTORIA = "VICTORIA"
 DERROTA = "DERROTA"
 TOP = "TOP"
+GALERIA = "GALERIA"
 SIN_CAMARA = "SIN_CAMARA"
 
 # motivos de derrota (y el texto que se muestra)
@@ -257,6 +262,22 @@ RECT_TITULO_RONDA = (16, 10, 320, 46)
 RECT_BARRA_LECHE = (690, 548, 220, 18)
 RECT_BARRA_TEMPERATURA = (690, 600, 220, 18)
 DURACION_ESTRELLA = 0.5     # en el resultado, cada estrella aparece medio segundo después de la otra
+
+# ---------------------------------------------------------------- botones, transición y portada
+RECT_BOTON_PANTALLA = (12, 12, 44, 44)   # botón de pantalla completa (arriba a la izquierda)
+RECT_BOTON_EMPEZAR = (366, 498, 228, 56) # el cartel de "¡Empezar!" sobre la barra de la portada
+RECT_BOTON_TOP = (218, 572, 160, 48)
+RECT_BOTON_GALERIA = (582, 572, 160, 48)
+DURACION_FUNDIDO = 0.5                   # segundos de la transición (se oscurece y se aclara)
+COLOR_FUNDIDO = (62, 42, 50)
+SALUDO_DON_SALMON = "¡Hola! Soy Don Salmón, el jurado."
+
+# ---------------------------------------------------------------- tutorial
+RECT_TUTORIAL_ILUSTRACION = (40, 74, 880, 300)
+RECT_TUTORIAL_GLOBO = (200, 396, 720, 124)
+POS_DON_SALMON_TUTORIAL = (110, 528)
+RECT_BOTON_ANTERIOR = (40, 560, 200, 52)
+RECT_BOTON_SIGUIENTE = (720, 560, 200, 52)
 
 # ---------------------------------------------------------------- sonido
 ARCHIVOS_SONIDO = {

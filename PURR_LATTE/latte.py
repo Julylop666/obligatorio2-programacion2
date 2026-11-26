@@ -8,12 +8,14 @@ Idea del puntaje (simple a propósito):
   - La leche que va cayendo se pinta en otra Surface, y de ahí otra máscara.
   - cubiertas = celdas que están en las dos máscaras a la vez (overlap_area).
   - % = cubiertas / total del dibujo - penalización por las celdas con leche fuera del dibujo.
+  - Un margen finito alrededor del dibujo NO resta: así se puede llegar al 100% (para cubrir
+    bien el borde siempre se pasa un poquito, también a los baristas de verdad).
 """
 import random
 import pygame
 from ajustes import (COLORES as C, PX, TAM_LIENZO, CENTRO_LIENZO, POS_LIENZO, RADIO_PLATO,
                      RADIO_TAZA, RADIO_CAFE, SEPARACION_GUIA, COLOR_GUIA, PENALIZACION_FUERA,
-                     UMBRALES_ESTRELLAS, LIMITE_DESBORDE)
+                     UMBRALES_ESTRELLAS, LIMITE_DESBORDE, MARGEN_TOLERANCIA)
 
 
 # ---------------------------------------------------------------- funciones sueltas
@@ -158,6 +160,19 @@ def celdas_del_borde(mascara):
     return borde
 
 
+def agrandar_mascara(mascara, margen):
+    """Devuelve una copia de la máscara engordada 'margen' celdas para todos lados.
+
+    La dibujo varias veces encima de sí misma, corrida un poquito en cada dirección:
+    lo que queda es el dibujo con un borde extra alrededor.
+    """
+    grande = mascara.copy()
+    for dx in range(-margen, margen + 1):
+        for dy in range(-margen, margen + 1):
+            grande.draw(mascara, (dx, dy))      # draw "suma" la otra máscara corrida (dx, dy)
+    return grande
+
+
 # ---------------------------------------------------------------- la clase Taza
 class Taza:
     """Una taza de café con su dibujo guía, la leche que le vas echando y su puntaje."""
@@ -172,6 +187,7 @@ class Taza:
         mascara_forma = pygame.mask.from_surface(crear_forma(nombre_dibujo))
         self.mascara_dibujo = mascara_forma.overlap_mask(pygame.mask.from_surface(circulo), (0, 0))
         self.total_dibujo = self.mascara_dibujo.count()
+        self.mascara_con_margen = agrandar_mascara(self.mascara_dibujo, MARGEN_TOLERANCIA)
         self.guia = self.crear_guia()
         # acá se va pintando la leche (empieza transparente)
         self.leche = pygame.Surface((TAM_LIENZO, TAM_LIENZO), pygame.SRCALPHA)
@@ -245,7 +261,8 @@ class Taza:
         """Calcula y devuelve el porcentaje (0 a 100) comparando la máscara de leche con la del dibujo."""
         mascara_leche = pygame.mask.from_surface(self.leche)
         cubiertas = self.mascara_dibujo.overlap_area(mascara_leche, (0, 0))
-        self.fuera = mascara_leche.count() - cubiertas
+        # "fuera" solo cuenta la leche que se pasó del dibujo MÁS su margen de tolerancia
+        self.fuera = mascara_leche.count() - self.mascara_con_margen.overlap_area(mascara_leche, (0, 0))
         cobertura = cubiertas / self.total_dibujo
         penalizacion = PENALIZACION_FUERA * self.fuera / self.total_dibujo
         porcentaje = round((cobertura - penalizacion) * 100)
@@ -271,6 +288,14 @@ class Taza:
             self.lienzo.blit(self.guia, (0, 0))
         grande = pygame.transform.scale(self.lienzo, (TAM_LIENZO * px, TAM_LIENZO * px))
         pantalla.blit(grande, pos)
+
+    def imagen(self, con_guia=False):
+        """Devuelve una copia de cómo quedó la taza, para la galería (con guía: para los marcos vacíos)."""
+        foto = self.base.copy()
+        foto.blit(self.leche, (0, 0))
+        if con_guia:
+            foto.blit(self.guia, (0, 0))
+        return foto
 
     def rellenar_perfecto(self):
         """Pinta la leche exactamente sobre el dibujo (para la taza de muestra de la portada)."""

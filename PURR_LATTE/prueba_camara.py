@@ -1,7 +1,7 @@
 """prueba_camara.py - Prueba la cámara sola, sin el juego (Etapa 1).
 
-Muestra la imagen de la cámara pixelada, el punto del dedo índice, si hay pellizco y el tamaño
-de la mano (para calibrar el grosor del chorro en ajustes.py).
+Muestra la imagen de la cámara, las puntas del pulgar y del índice, el punto de la jarra (entre
+los dos), si hay pellizco y el tamaño de la mano (para calibrar el grosor del chorro en ajustes.py).
 Sirve para ver si la detección anda bien con la luz y el fondo que tengo.
 Se ejecuta con: python prueba_camara.py   (se cierra con la X o con Esc)
 """
@@ -34,13 +34,18 @@ def principal():
             texto = camara.error or "No veo la mano (None)"
         else:
             # paso del tamaño del cuadro de la cámara al tamaño de la ventana
-            x = int(punto[0] / camara.ancho * 640)
-            y = int(punto[1] / camara.alto * 480)
+            escala_x = 640 / camara.ancho
+            escala_y = 480 / camara.alto
+            pulgar, indice = camara.puntas_dedos()
+            for dedo in (pulgar, indice):
+                pygame.draw.circle(pantalla, C["dorado"], (int(dedo[0] * escala_x), int(dedo[1] * escala_y)), 7)
+            x = int(punto[0] * escala_x)
+            y = int(punto[1] * escala_y)
             color = C["blanco"] if camara.hay_pellizco() else C["acento"]
             pygame.draw.circle(pantalla, C["contorno"], (x, y), 14)
             pygame.draw.circle(pantalla, color, (x, y), 10)
             # el tamaño de la mano sirve para calibrar TAM_MANO_LEJOS y TAM_MANO_CERCA en ajustes.py
-            texto = (f"Dedo ({x}, {y})  -  pellizco: {'SÍ' if camara.hay_pellizco() else 'no'}"
+            texto = (f"Jarra ({x}, {y})  -  pellizco: {'SÍ' if camara.hay_pellizco() else 'no'}"
                      f"  -  tamaño mano: {camara.tamano_mano():.2f}")
         pantalla.blit(fuente.render(texto, True, C["texto"]), (12, 490))
         pygame.display.flip()

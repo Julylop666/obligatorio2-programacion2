@@ -1,18 +1,22 @@
 """main.py - Purr & Brew: Latte Art. Bucle principal y máquina de estados.
 
 Estados:
-  PORTADA -> NOMBRE (escribís tu nombre) -> ELEGIR_GATO (color del gatito) -> INSTRUCCIONES
-  INSTRUCCIONES -> JUGANDO (ronda 1..5) -> RESULTADO_RONDA (si llegaste a 1 estrella) -> ... -> VICTORIA
+  PORTADA -> NOMBRE (escribís tu nombre) -> ELEGIR_GATO (color del gatito) -> TUTORIAL (6 páginas)
+  TUTORIAL -> JUGANDO (ronda 1..5) -> RESULTADO_RONDA (si llegaste a 1 estrella) -> ... -> VICTORIA
   JUGANDO -> DERROTA (se enfrió, se terminó la leche o se desbordó)
-  VICTORIA / DERROTA -> (Enter) TOP -> (R) PORTADA, sin cerrar la ventana. Desde la portada, T muestra el top.
+  VICTORIA / DERROTA -> TOP -> PORTADA, sin cerrar la ventana.
+  Desde la portada también se va al TOP y a la GALERIA (las mejores tazas de cada dibujo).
   Si la cámara no abre: SIN_CAMARA (un aviso claro en vez de un error).
 Dentro de JUGANDO hay dos "pausas": la de Esc y la de cuando la cámara no ve la mano (None).
+Entre pantallas hay una transición: la pantalla se oscurece, cambia y se vuelve a aclarar.
 
-La mano se usa así: la punta del índice es la jarra y el pellizco (índice + pulgar) vierte.
+La mano se usa así: el punto entre el índice y el pulgar es la jarra y el pellizco vierte.
 Además, la distancia de la mano a la cámara es la altura de la jarra: cerca = chorro grueso,
 lejos = chorro fino (como hacen los baristas para los detalles).
-El teclado solo sirve para los menús (Enter/Espacio, flechas, R, T, Esc, M, N, F11) y el nombre.
+El teclado y el mouse solo sirven para los menús (botones, Enter/Espacio, flechas, R, T, G, Esc,
+M, N, F11) y para escribir el nombre.
 """
+import math
 import os
 import pygame
 from ajustes import *
@@ -21,7 +25,10 @@ from latte import Taza, calcular_estrellas
 from particulas import crear_gotas, actualizar_particulas, segun_grosor
 from jurado import Jurado
 from puntajes import cargar_puntajes, agregar_puntaje
-from dibujo import crear_fondo_mesa, crear_fondo_cafeteria, dibujar_jarra, dibujar_mira
+from galeria import cargar_galeria, guardar_arte
+from tutorial import Tutorial
+from dibujo import (crear_fondo_mesa, crear_fondo_cafeteria, dibujar_jarra, dibujar_mira,
+                    dibujar_boton_pantalla_completa, dibujar_velo)
 import escenas
 
 
@@ -136,9 +143,18 @@ class Juego:
             pygame.mixer.set_reserved(1)         # el canal 0 queda solo para el chorro
         self.chorro_sonando = False
         self.puntajes = cargar_puntajes()
+        self.galeria_datos, self.galeria_fotos = cargar_galeria()
+        # tazas vacías (solo con la guía) para los marcos de la galería que todavía no tienen récord
+        self.tazas_vacias = {}
+        for ronda in RONDAS:
+            self.tazas_vacias[ronda["dibujo"]] = Taza(ronda["dibujo"]).imagen(con_guia=True)
         self.taza_muestra = Taza("corazon")      # la taza decorada de la portada
         self.taza_muestra.rellenar_perfecto()
         self.jurado = Jurado()
+        self.tutorial = Tutorial()
+        # transición entre pantallas: qué función llamar cuando la pantalla esté oscura
+        self.accion_fundido = None
+        self.tiempo_fundido = 0.0
         self.t = 0.0                             # reloj general para las animaciones
         # el jugador: su nombre y el gato que eligió (se mantienen entre partidas)
         self.nombre = ""
@@ -163,6 +179,7 @@ class Juego:
         self.porcentajes = []                    # el % de cada ronda jugada (suman los puntos)
         self.motivo_derrota = None
         self.puesto = None
+        self.record = False
         self.pausado = False
         self.taza = Taza(RONDAS[0]["dibujo"])
         self.particulas = []
@@ -180,7 +197,7 @@ class Juego:
         self.tiempo = datos["tiempo"]
         self.cuenta = CUENTA_REGRESIVA
         self.gotas_pendientes = 0.0
-        self.tiempo_quieto = 0.0
+        self.tiempo_sirviendo = 0.0
         self.porcentaje = 0
         self.pausado = False
         # cosas que usa Don Salmón para comentar en vivo
@@ -198,6 +215,9 @@ class Juego:
         self.porcentajes.append(porcentaje)
         estrellas = calcular_estrellas(porcentaje)
         if estrellas >= 1:
+            # si es la mejor taza de este dibujo, entra a la galería
+            self.record = guardar_arte(self.galeria_datos, self.galeria_fotos, self.taza.nombre_dibujo,
+                                       self.nombre.strip(), porcentaje, self.taza.imagen())
             self.estrellas_por_ronda.append(estrellas)
             self.estrellas_ronda = estrellas
             self.estrellas_visibles = 0
@@ -218,6 +238,65 @@ class Juego:
         self.jurado.reiniciar(ASCO if motivo == "desborde" else PREOCUPADO)
         self.reproducir("miau_triste")
         self.anotar_en_el_top()
+
+    # ------------------------------------------------------------ transición entre pantallas
+    def ir_a(self, accion):
+        """Empieza la transición: la pantalla se oscurece y, en el medio, se llama a 'accion'.
+
+        'accion' es una función del juego (por ejemplo self.volver_a_portada): la guardo y la
+        llamo recién cuando la pantalla está toda oscura, así el cambio no se ve de golpe.
+        """
+        if self.accion_fundido is None:
+            self.accion_fundido = accion
+            self.tiempo_fundido = 0.0
+
+    def actualizar_fundido(self, dt):
+        """Avanza la transición. A la mitad (pantalla oscura) hace el cambio de pantalla."""
+        if self.accion_fundido is None and self.tiempo_fundido <= 0:
+            return
+        mitad = DURACION_FUNDIDO / 2
+        antes = self.tiempo_fundido
+        self.tiempo_fundido += dt
+        if self.accion_fundido is not None and antes < mitad <= self.tiempo_fundido:
+            self.accion_fundido()
+            self.accion_fundido = None
+        if self.tiempo_fundido >= DURACION_FUNDIDO:
+            self.tiempo_fundido = 0.0
+
+    def oscuridad_fundido(self):
+        """Devuelve qué tan oscura está la pantalla por la transición (0 = nada, 255 = negra)."""
+        if self.accion_fundido is None and self.tiempo_fundido <= 0:
+            return 0
+        mitad = DURACION_FUNDIDO / 2
+        # sube hasta la mitad y después baja: forma de "triángulo"
+        avance = 1 - abs(self.tiempo_fundido - mitad) / mitad
+        return int(255 * max(0.0, min(1.0, avance)))
+
+    def ir_a_nombre(self):
+        """Pasa a la pantalla del nombre."""
+        self.estado = NOMBRE
+
+    def ir_a_elegir_gato(self):
+        """Pasa a la pantalla para elegir el gatito."""
+        self.estado = ELEGIR_GATO
+
+    def ir_al_tutorial(self):
+        """Pasa al tutorial, desde la primera página."""
+        self.tutorial.reiniciar()
+        self.jurado.reiniciar(NEUTRAL)
+        self.estado = TUTORIAL
+
+    def empezar_partida(self):
+        """Arranca la ronda 1 (desde el tutorial)."""
+        self.empezar_ronda(0)
+
+    def ir_al_top(self):
+        """Pasa al top del concurso."""
+        self.estado = TOP
+
+    def ir_a_galeria(self):
+        """Pasa a la galería de los mejores artes."""
+        self.estado = GALERIA
 
     def siguiente_ronda(self):
         """Desde el resultado: va a la próxima ronda o, si era la última, a la victoria."""
@@ -288,14 +367,42 @@ class Juego:
             if evento.key == pygame.K_BACKSPACE:
                 self.nombre = self.nombre[:-1]
             elif evento.key in (pygame.K_RETURN, pygame.K_KP_ENTER) and self.nombre.strip():
-                self.estado = ELEGIR_GATO
+                self.ir_a(self.ir_a_elegir_gato)
             elif evento.key == pygame.K_ESCAPE:
-                self.estado = PORTADA
+                self.ir_a(self.volver_a_portada)
+
+    def boton_pantalla_visible(self):
+        """Devuelve True si se ve el botón de pantalla completa (en la ronda solo aparece en la pausa)."""
+        return self.estado != JUGANDO or self.pausado
+
+    def clic(self, pos):
+        """Atiende un clic del mouse: el botón de pantalla completa y los botones de los menús."""
+        if self.boton_pantalla_visible() and pygame.Rect(RECT_BOTON_PANTALLA).collidepoint(pos):
+            pygame.display.toggle_fullscreen()
+        elif self.estado == PORTADA:
+            if pygame.Rect(RECT_BOTON_EMPEZAR).collidepoint(pos):
+                self.ir_a(self.ir_a_nombre)
+            elif pygame.Rect(RECT_BOTON_TOP).collidepoint(pos):
+                self.puesto = None
+                self.ir_a(self.ir_al_top)
+            elif pygame.Rect(RECT_BOTON_GALERIA).collidepoint(pos):
+                self.ir_a(self.ir_a_galeria)
+        elif self.estado == TUTORIAL:
+            boton = self.tutorial.boton_en(pos)
+            if boton == "anterior":
+                self.tutorial.anterior()
+            elif boton == "siguiente" and self.tutorial.siguiente():
+                self.ir_a(self.empezar_partida)
 
     def manejar_evento(self, evento):
-        """Atiende la X de la ventana y las teclas de los menús según el estado."""
+        """Atiende la X de la ventana, el mouse y las teclas de los menús según el estado."""
         if evento.type == pygame.QUIT:
             self.corriendo = False
+            return
+        if self.accion_fundido is not None:
+            return                      # durante la transición no se aprieta nada
+        if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+            self.clic(evento.pos)
             return
         if self.estado == NOMBRE:
             # mientras escribís el nombre, las letras son letras (la M no apaga la música)
@@ -314,27 +421,27 @@ class Juego:
         if self.estado == SIN_CAMARA and tecla == pygame.K_ESCAPE:
             self.corriendo = False
         elif self.estado == PORTADA and avanzar:
-            self.estado = NOMBRE
+            self.ir_a(self.ir_a_nombre)
         elif self.estado == PORTADA and tecla == pygame.K_t:
             self.puesto = None
-            self.estado = TOP
+            self.ir_a(self.ir_al_top)
+        elif self.estado == PORTADA and tecla == pygame.K_g:
+            self.ir_a(self.ir_a_galeria)
         elif self.estado == ELEGIR_GATO:
             self.elegir_gato(tecla, avanzar)
-        elif self.estado == INSTRUCCIONES and avanzar:
-            self.empezar_ronda(0)
+        elif self.estado == TUTORIAL:
+            self.teclas_tutorial(tecla, avanzar)
         elif self.estado == JUGANDO and tecla == pygame.K_ESCAPE:
             self.pausado = not self.pausado
             self.parar_chorro()
         elif self.estado == JUGANDO and self.pausado and tecla == pygame.K_r:
-            self.volver_a_portada()
+            self.ir_a(self.volver_a_portada)
         elif self.estado == RESULTADO_RONDA and avanzar and self.estrellas_visibles == self.estrellas_ronda:
-            self.siguiente_ronda()
+            self.ir_a(self.siguiente_ronda)
         elif self.estado in (VICTORIA, DERROTA) and avanzar:
-            self.estado = TOP
-        elif self.estado in (VICTORIA, DERROTA, TOP) and tecla == pygame.K_r:
-            self.volver_a_portada()
-        elif self.estado == TOP and tecla == pygame.K_ESCAPE:
-            self.volver_a_portada()
+            self.ir_a(self.ir_al_top)
+        elif self.estado in (VICTORIA, DERROTA, TOP, GALERIA) and tecla in (pygame.K_r, pygame.K_ESCAPE):
+            self.ir_a(self.volver_a_portada)
 
     def elegir_gato(self, tecla, avanzar):
         """En la pantalla de los gatos: las flechas cambian de gato y Enter confirma."""
@@ -343,11 +450,20 @@ class Juego:
         elif tecla == pygame.K_RIGHT:
             self.pelaje = (self.pelaje + 1) % len(PELAJES)
         elif avanzar:
-            self.estado = INSTRUCCIONES
+            self.ir_a(self.ir_al_tutorial)
         elif tecla == pygame.K_ESCAPE:
-            self.estado = NOMBRE
+            self.ir_a(self.ir_a_nombre)
 
-    # ------------------------------------------------------------ actualizar
+    def teclas_tutorial(self, tecla, avanzar):
+        """En el tutorial: Enter o flecha derecha avanza, flecha izquierda vuelve, Esc lo saltea."""
+        if avanzar or tecla == pygame.K_RIGHT:
+            if self.tutorial.siguiente():
+                self.ir_a(self.empezar_partida)
+        elif tecla == pygame.K_LEFT:
+            self.tutorial.anterior()
+        elif tecla == pygame.K_ESCAPE:
+            self.ir_a(self.empezar_partida)
+
     def leer_mano(self, dt):
         """Le pide a vision.py dónde está el dedo y si hay pellizco, y mueve la jarra suavizada."""
         self.punto_camara = self.camara.detectar()
@@ -372,6 +488,7 @@ class Juego:
         """Actualiza la cámara, las animaciones y, si estás jugando, la ronda."""
         self.t += dt
         self.jurado.actualizar(dt)
+        self.actualizar_fundido(dt)
         if self.estado == SIN_CAMARA:
             return
         self.leer_mano(dt)
@@ -411,19 +528,33 @@ class Juego:
         if self.taza.hay_desborde():
             self.perder("desborde")
             return
-        if calcular_estrellas(self.porcentaje) == 3 and not vertiendo:
-            # con 3 estrellas, si dejás de verter un ratito, se sirve sola (ya está perfecta)
-            self.tiempo_quieto += dt
-            if self.tiempo_quieto >= TIEMPO_SERVIR:
+        if self.porcentaje >= 100:
+            self.terminar_ronda("frio")       # 100%: perfecta, se sirve sola
+            return
+        # Servir: con al menos 1 estrella, sacás la jarra de la taza (sin verter) y esperás un ratito.
+        if self.puede_servir() and not vertiendo and self.jarra_fuera_de_la_taza():
+            self.tiempo_sirviendo += dt
+            if self.tiempo_sirviendo >= TIEMPO_SERVIR:
                 self.terminar_ronda("frio")
                 return
         else:
-            self.tiempo_quieto = 0.0
+            self.tiempo_sirviendo = 0.0
         if self.tiempo <= 0:
             self.terminar_ronda("frio")
         elif self.leche <= 0 and not self.particulas:
             # espero a que caigan las últimas gotas antes de evaluar
             self.terminar_ronda("leche")
+
+    def puede_servir(self):
+        """Devuelve True si la taza ya vale al menos 1 estrella (se puede servir)."""
+        return calcular_estrellas(self.porcentaje) >= 1
+
+    def jarra_fuera_de_la_taza(self):
+        """Devuelve True si la jarra está afuera del plato (lejos del centro de la taza)."""
+        centro_x = POS_LIENZO[0] + TAM_LIENZO * PX / 2
+        centro_y = POS_LIENZO[1] + TAM_LIENZO * PX / 2
+        distancia = math.hypot(self.pos_jarra[0] - centro_x, self.pos_jarra[1] - centro_y)
+        return distancia > RADIO_PLATO * PX
 
     def avisar_una_vez(self, evento):
         """Le pide a Don Salmón que comente algo que solo tiene sentido decir una vez por ronda."""
@@ -471,11 +602,19 @@ class Juego:
             self.reproducir("campanita")
 
     # ------------------------------------------------------------ dibujar
-    def punto_en_cuadro(self):
-        """Devuelve el dedo como (u, v) entre 0 y 1 del cuadro, para dibujarlo en la miniatura."""
+    def dedos_en_cuadro(self):
+        """Devuelve las puntas del pulgar y del índice como (u, v) entre 0 y 1 del cuadro, o None.
+
+        Sirve para dibujarlas en la miniatura de la cámara, sin importar de qué tamaño sea.
+        """
         if self.punto_camara is None:
             return None
-        return (self.punto_camara[0] / self.camara.ancho, self.punto_camara[1] / self.camara.alto)
+        puntas = self.camara.puntas_dedos()
+        if puntas is None:
+            return None
+        pulgar, indice = puntas
+        return ((pulgar[0] / self.camara.ancho, pulgar[1] / self.camara.alto),
+                (indice[0] / self.camara.ancho, indice[1] / self.camara.alto))
 
     def dibujar_ronda(self):
         """Dibuja la mesa, la taza, las gotas, la jarra, el HUD y los carteles de la ronda."""
@@ -493,9 +632,12 @@ class Juego:
             dibujar_jarra(self.pantalla, self.pos_jarra, vertiendo, PELAJES[self.pelaje][1], elevacion)
         datos = RONDAS[self.ronda]
         imagen = self.camara.miniatura(TAM_MINIATURA, PIXEL_MINIATURA)
-        escenas.dibujar_hud(self.pantalla, self.fuentes, self.ronda, imagen, self.punto_en_cuadro(),
+        servir = None
+        if self.cuenta <= 0 and self.puede_servir():
+            servir = self.tiempo_sirviendo / TIEMPO_SERVIR
+        escenas.dibujar_hud(self.pantalla, self.fuentes, self.ronda, imagen, self.dedos_en_cuadro(),
                             self.pellizco, self.jurado, self.porcentaje, self.leche / datos["leche"],
-                            self.tiempo / datos["tiempo"])
+                            self.tiempo / datos["tiempo"], servir)
         if self.pausado:
             escenas.dibujar_pausa(self.pantalla, self.fuentes)
         elif self.tiempo_sin_mano > TOLERANCIA_SIN_MANO:
@@ -504,25 +646,28 @@ class Juego:
             escenas.dibujar_cuenta(self.pantalla, self.fuentes, self.cuenta)
 
     def dibujar(self):
-        """Dibuja la pantalla que corresponde al estado actual."""
+        """Dibuja la pantalla del estado actual, el botón de pantalla completa y la transición."""
         pelaje = PELAJES[self.pelaje][1]
+        mouse = pygame.mouse.get_pos()
         if self.estado == PORTADA:
             escenas.dibujar_portada(self.pantalla, self.fondo_cafeteria, self.fuentes, self.taza_muestra,
-                                    self.jurado, pelaje, self.t)
+                                    self.jurado, pelaje, mouse, self.t)
         elif self.estado == NOMBRE:
             escenas.dibujar_nombre(self.pantalla, self.fondo_cafeteria, self.fuentes, self.nombre, self.jurado, self.t)
         elif self.estado == ELEGIR_GATO:
             escenas.dibujar_elegir_gato(self.pantalla, self.fondo_cafeteria, self.fuentes, self.pelaje, self.t)
-        elif self.estado == INSTRUCCIONES:
-            imagen = self.camara.miniatura(TAM_CAMARA_INSTRUCCIONES, PIXEL_MINIATURA)
-            escenas.dibujar_instrucciones(self.pantalla, self.fondo_cafeteria, self.fuentes, imagen,
-                                          self.punto_en_cuadro(), self.pellizco, self.grosor, self.t)
+        elif self.estado == TUTORIAL:
+            # lo que pasa en vivo con la cámara, para que el tutorial lo muestre
+            vivo = {"imagen": self.camara.miniatura(TAM_CAMARA_TUTORIAL, PIXEL_MINIATURA),
+                    "dedos": self.dedos_en_cuadro(), "pellizco": self.pellizco, "grosor": self.grosor,
+                    "pelaje": self.pelaje}
+            self.tutorial.dibujar(self.pantalla, self.fondo_cafeteria, self.fuentes, self.jurado, vivo, mouse, self.t)
         elif self.estado == JUGANDO:
             self.dibujar_ronda()
         elif self.estado == RESULTADO_RONDA:
             escenas.dibujar_resultado(self.pantalla, self.fondo_mesa, self.fuentes, self.ronda, self.taza,
                                       self.jurado, self.estrellas_visibles,
-                                      self.estrellas_visibles == self.estrellas_ronda, self.t)
+                                      self.estrellas_visibles == self.estrellas_ronda, self.record, self.t)
         elif self.estado == VICTORIA:
             escenas.dibujar_victoria(self.pantalla, self.fondo_cafeteria, self.fuentes, self.estrellas_por_ronda,
                                      self.puntos(), self.jurado, pelaje, self.t)
@@ -531,8 +676,17 @@ class Juego:
                                     self.ronda, self.taza, self.puntos(), self.jurado, self.t)
         elif self.estado == TOP:
             escenas.dibujar_top(self.pantalla, self.fondo_cafeteria, self.fuentes, self.puntajes, self.puesto, self.t)
+        elif self.estado == GALERIA:
+            escenas.dibujar_galeria(self.pantalla, self.fondo_cafeteria, self.fuentes, self.galeria_datos,
+                                    self.galeria_fotos, self.tazas_vacias, self.t)
         elif self.estado == SIN_CAMARA:
             escenas.dibujar_sin_camara(self.pantalla, self.fondo_cafeteria, self.fuentes, self.camara.error)
+        if self.boton_pantalla_visible():
+            boton = pygame.Rect(RECT_BOTON_PANTALLA)
+            dibujar_boton_pantalla_completa(self.pantalla, boton, boton.collidepoint(mouse))
+        oscuridad = self.oscuridad_fundido()
+        if oscuridad > 0:
+            dibujar_velo(self.pantalla, COLOR_FUNDIDO + (oscuridad,))
         pygame.display.flip()
 
     # ------------------------------------------------------------ bucle principal

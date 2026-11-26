@@ -1,9 +1,10 @@
 """vision.py - Todo lo de la cámara: OpenCV (abrir, leer, espejar, liberar) y MediaPipe (detectar la mano).
 
 El resto del juego NO importa cv2 ni mediapipe: solo usa lo que devuelve la clase Camara:
-  - detectar()      -> (x, y) de la punta del índice en el cuadro, o None si no hay mano
+  - detectar()      -> (x, y) del punto entre las puntas del índice y del pulgar, o None si no hay mano
   - hay_pellizco()  -> True si el índice y el pulgar están juntos
   - tamano_mano()   -> qué tan grande se ve la mano (cerca o lejos de la cámara), o None
+  - puntas_dedos()  -> las puntas del pulgar y del índice (para dibujarlas en la miniatura), o None
   - miniatura()     -> una Surface de pygame con la imagen de la cámara (o None)
   - liberar()       -> cierra la cámara (cap.release())
 
@@ -74,8 +75,9 @@ class Camara:
     def detectar(self):
         """Lee un cuadro, lo espeja y busca la mano.
 
-        Devuelve (x, y) de la punta del dedo índice, en pixeles del cuadro, o None si no hay mano
-        (o si la cámara no entregó imagen). Es la ÚNICA función de detección que usa el juego.
+        Devuelve (x, y) del punto que queda entre las puntas del índice y del pulgar, en pixeles
+        del cuadro, o None si no hay mano (o si la cámara no entregó imagen).
+        Es la ÚNICA función de detección que usa el juego.
         """
         if not self.esta_lista():
             return None
@@ -102,7 +104,12 @@ class Camara:
         for punto in mano:
             self.puntos.append((punto.x * self.ancho, punto.y * self.alto))
         self.actualizar_pellizco()
-        return self.puntos[PUNTO_INDICE]
+        # Uso el punto del medio entre el pulgar y el índice (y no la punta del índice sola):
+        # al pellizcar, el índice baja hacia el pulgar y la jarra "saltaba". Con el punto medio,
+        # al juntar los dedos la jarra se queda donde estaba: es donde "agarrás" la jarrita.
+        pulgar = self.puntos[PUNTO_PULGAR]
+        indice = self.puntos[PUNTO_INDICE]
+        return ((pulgar[0] + indice[0]) / 2, (pulgar[1] + indice[1]) / 2)
 
     def actualizar_pellizco(self):
         """Decide si hay pellizco comparando la distancia pulgar-índice con el tamaño de la mano."""
@@ -130,6 +137,12 @@ class Camara:
         if self.puntos is None:
             return None
         return distancia(self.puntos[PUNTO_MUNECA], self.puntos[PUNTO_BASE_MEDIO]) / self.alto
+
+    def puntas_dedos(self):
+        """Devuelve ((x, y) del pulgar, (x, y) del índice) en pixeles del cuadro, o None si no hay mano."""
+        if self.puntos is None:
+            return None
+        return (self.puntos[PUNTO_PULGAR], self.puntos[PUNTO_INDICE])
 
     def miniatura(self, tam, pixel):
         """Devuelve el último cuadro como Surface de pygame del tamaño tam, pixelado (o None).

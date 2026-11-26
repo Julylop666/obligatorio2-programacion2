@@ -123,6 +123,31 @@ def texto_envuelto(pantalla, texto, fuente, color, rect, interlineado=2):
     return y
 
 
+def dibujar_boton(pantalla, rect, texto, fuente, encima, color=None):
+    """Dibuja un botón pixel art (se aclara y "sube" un poquito con el mouse encima). Devuelve su Rect."""
+    rect = pygame.Rect(rect)
+    color = color or C["dorado"]
+    if encima:
+        color = aclarar(color, 0.35)
+        rect = rect.move(0, -2)
+    # la sombrita de abajo hace que parezca un botón que se puede apretar
+    pygame.draw.rect(pantalla, C["contorno"], rect.move(0, PX).inflate(-PX * 2, 0))
+    dibujar_panel(pantalla, rect, color, C["contorno"])
+    if texto:
+        texto_centrado(pantalla, texto, fuente, C["texto"], rect.center)
+    return rect
+
+
+def dibujar_boton_pantalla_completa(pantalla, rect, encima):
+    """Botón cuadrado con el ícono de pantalla completa (cuatro esquinitas)."""
+    rect = dibujar_boton(pantalla, rect, "", None, encima, C["panel"])
+    x, y, w, h = rect.inflate(-PX * 5, -PX * 5)
+    largo = PX * 2
+    for cx, cy, dx, dy in ((x, y, 1, 1), (x + w, y, -1, 1), (x, y + h, 1, -1), (x + w, y + h, -1, -1)):
+        pygame.draw.rect(pantalla, C["texto"], (min(cx, cx + dx * largo), cy - (PX if dy < 0 else 0), largo, PX))
+        pygame.draw.rect(pantalla, C["texto"], (cx - (PX if dx < 0 else 0), min(cy, cy + dy * largo), PX, largo))
+
+
 def dibujar_velo(pantalla, color):
     """Oscurece toda la pantalla con un color semitransparente (para pausas y avisos)."""
     velo = pygame.Surface((ANCHO, ALTO), pygame.SRCALPHA)
@@ -427,10 +452,11 @@ def crear_fondo_cafeteria():
 
 
 # ---------------------------------------------------------------- cámara en pantalla
-def dibujar_camara(pantalla, imagen, rect, punto, pellizco, fuente):
-    """Dibuja la imagen de la cámara en 'rect', con la zona útil punteada y el punto del dedo.
+def dibujar_camara(pantalla, imagen, rect, dedos, pellizco, fuente):
+    """Dibuja la imagen de la cámara en 'rect', con la zona útil punteada, las puntas del pulgar
+    y del índice unidas por una línea, y el punto del medio (donde está la jarra).
 
-    punto: (u, v) entre 0 y 1 dentro del cuadro, o None si no hay mano.
+    dedos: ((u, v) del pulgar, (u, v) del índice), entre 0 y 1 dentro del cuadro, o None.
     """
     rect = pygame.Rect(rect)
     pygame.draw.rect(pantalla, C["contorno"], rect.inflate(PX * 2, PX * 2))
@@ -448,9 +474,17 @@ def dibujar_camara(pantalla, imagen, rect, punto, pellizco, fuente):
     for y in range(zona.top, zona.bottom, PX * 3):
         pygame.draw.rect(pantalla, C["dorado"], (zona.left, y, 2, PX))
         pygame.draw.rect(pantalla, C["dorado"], (zona.right, y, 2, PX))
-    if punto is not None:
-        x = rect.x + int(punto[0] * rect.width)
-        y = rect.y + int(punto[1] * rect.height)
-        color = C["blanco"] if pellizco else C["acento"]
-        pygame.draw.rect(pantalla, C["contorno"], (x - 7, y - 7, 14, 14))
-        pygame.draw.rect(pantalla, color, (x - 5, y - 5, 10, 10))
+    if dedos is None:
+        return
+    pulgar = (rect.x + int(dedos[0][0] * rect.width), rect.y + int(dedos[0][1] * rect.height))
+    indice = (rect.x + int(dedos[1][0] * rect.width), rect.y + int(dedos[1][1] * rect.height))
+    medio = ((pulgar[0] + indice[0]) // 2, (pulgar[1] + indice[1]) // 2)
+    # si hay pellizco todo se pone blanco (como la leche): se ve clarito que está vertiendo
+    color = C["blanco"] if pellizco else C["dorado"]
+    pygame.draw.line(pantalla, C["contorno"], pulgar, indice, 5)
+    pygame.draw.line(pantalla, color, pulgar, indice, 2)
+    for x, y in (pulgar, indice):
+        pygame.draw.rect(pantalla, C["contorno"], (x - 5, y - 5, 10, 10))
+        pygame.draw.rect(pantalla, color, (x - 3, y - 3, 6, 6))
+    pygame.draw.rect(pantalla, C["contorno"], (medio[0] - 7, medio[1] - 7, 14, 14))
+    pygame.draw.rect(pantalla, C["blanco"] if pellizco else C["acento"], (medio[0] - 5, medio[1] - 5, 10, 10))

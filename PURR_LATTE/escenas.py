@@ -1,5 +1,6 @@
-"""escenas.py - Lo que se dibuja en cada estado: portada, nombre, elegir gato, instrucciones,
-HUD de la ronda, resultado, victoria, derrota, top, pausa, "¡Mostrá la pata!" y el aviso de cámara.
+"""escenas.py - Lo que se dibuja en cada estado: portada, nombre, elegir gato, HUD de la ronda,
+resultado, victoria, derrota, top, galería, pausa, "¡Mostrá la pata!" y el aviso de cámara.
+(El tutorial tiene su propio archivo: tutorial.py.)
 
 Estas funciones solo DIBUJAN: no cambian nada del juego. Reciben lo que necesitan mostrar.
 """
@@ -8,10 +9,11 @@ import pygame
 from ajustes import (COLORES as C, ANCHO, PX, RONDAS, COLOR_VELO, RECT_PANEL_CAMARA, RECT_PANEL_JURADO,
                      RECT_GLOBO, RECT_PANEL_PUNTAJE, RECT_TITULO_RONDA, RECT_BARRA_LECHE,
                      RECT_BARRA_TEMPERATURA, TAM_MINIATURA, POS_MINIATURA, POS_JURADO, PELAJES,
-                     TAM_CAMARA_INSTRUCCIONES, POS_CAMARA_INSTRUCCIONES, MOTIVOS_DERROTA, POS_LIENZO,
-                     TAM_LIENZO, UMBRALES_ESTRELLAS, CANTIDAD_TOP, LARGO_MAXIMO_NOMBRE)
+                     MOTIVOS_DERROTA, POS_LIENZO, TAM_LIENZO, UMBRALES_ESTRELLAS, CANTIDAD_TOP,
+                     LARGO_MAXIMO_NOMBRE, RECT_BOTON_EMPEZAR, RECT_BOTON_TOP, RECT_BOTON_GALERIA,
+                     SALUDO_DON_SALMON)
 from dibujo import (dibujar_panel, texto_centrado, texto_envuelto, dibujar_barra, dibujar_fila_estrellas,
-                    dibujar_estrella, dibujar_velo, dibujar_camara, dibujar_gato, pixelar)
+                    dibujar_estrella, dibujar_velo, dibujar_camara, dibujar_gato, pixelar, dibujar_boton)
 from latte import calcular_estrellas
 
 CENTRO_TAZA = (POS_LIENZO[0] + TAM_LIENZO * PX // 2, POS_LIENZO[1] + TAM_LIENZO * PX // 2)
@@ -46,20 +48,24 @@ def dibujar_globo(pantalla, rect, texto, fuente, punta_x):
 
 
 # ---------------------------------------------------------------- portada, nombre y elegir gato
-def dibujar_portada(pantalla, fondo, fuentes, taza_muestra, jurado, pelaje, t):
-    """Portada: título, la taza de muestra sobre la barra, el gato barista y Don Salmón."""
+def dibujar_portada(pantalla, fondo, fuentes, taza_muestra, jurado, pelaje, mouse, t):
+    """Portada: el título, la taza de muestra sobre la barra, tu gato, Don Salmón saludando y los
+    botones (¡Empezar!, Top y Galería). mouse: posición del mouse, para resaltar el botón de abajo.
+    """
     pantalla.blit(fondo, (0, 0))
     panel = dibujar_panel(pantalla, (240, 20, 480, 140))
     titulo_con_sombra(pantalla, "Purr & Brew", fuentes["titulo"], (ANCHO // 2, panel.y + 52))
     texto_centrado(pantalla, "LATTE ART", fuentes["grande"], C["acento"], (ANCHO // 2, panel.y + 106))
     taza_muestra.dibujar(pantalla, con_guia=False, pos=(ANCHO // 2 - 136, 210), px=2)
-    dibujar_gato(pantalla, (180, 560), pelaje, 7, "contento", delantal=True)
-    jurado.dibujar(pantalla, (790, 560), 7)
-    caja = dibujar_panel(pantalla, (150, 566, 660, 66))
-    if parpadea(t):
-        texto_centrado(pantalla, "Enter o Espacio para empezar", fuentes["normal"], C["acento"], (ANCHO // 2, caja.y + 22))
-    texto_centrado(pantalla, "T: ver el top  ·  F11: pantalla completa  ·  M/N: música y sonidos",
-                   fuentes["chica"], C["texto"], (ANCHO // 2, caja.y + 48))
+    dibujar_gato(pantalla, (150, 560), pelaje, 7, "contento", delantal=True)
+    jurado.dibujar(pantalla, (810, 560), 7)
+    # Don Salmón saluda con su globito (la puntita apunta a él)
+    dibujar_globo(pantalla, (640, 340, 300, 70), SALUDO_DON_SALMON, fuentes["chica"], 810)
+    botones = ((RECT_BOTON_EMPEZAR, "¡Empezar!", fuentes["grande"]), (RECT_BOTON_TOP, "Top (T)", fuentes["normal"]),
+               (RECT_BOTON_GALERIA, "Galería (G)", fuentes["normal"]))
+    for rect, texto, fuente in botones:
+        rect = pygame.Rect(rect)
+        dibujar_boton(pantalla, rect, texto, fuente, rect.collidepoint(mouse))
 
 
 def dibujar_nombre(pantalla, fondo, fuentes, nombre, jurado, t):
@@ -70,9 +76,12 @@ def dibujar_nombre(pantalla, fondo, fuentes, nombre, jurado, t):
     texto_centrado(pantalla, "Don Salmón te anota en la planilla del concurso.", fuentes["chica"], C["texto"],
                    (ANCHO // 2, caja.y + 98))
     campo = dibujar_panel(pantalla, (ANCHO // 2 - 200, caja.y + 128, 400, 64), C["blanco"], C["contorno"])
-    # el cursor titila para que se note que se puede escribir
-    cursor = "_" if int(t * 2) % 2 == 0 and len(nombre) < LARGO_MAXIMO_NOMBRE else ""
-    texto_centrado(pantalla, nombre + cursor, fuentes["grande"], C["texto"], campo.center)
+    escrito = texto_centrado(pantalla, nombre, fuentes["grande"], C["texto"], campo.center)
+    # El cursor es una barrita que titila justo después de la última letra. Va aparte del texto
+    # (y no como un "_" pegado) para que el nombre no se corra cuando aparece y desaparece.
+    if int(t * 2) % 2 == 0 and len(nombre) < LARGO_MAXIMO_NOMBRE:
+        x = escrito.right + 4 if nombre else campo.centerx
+        pygame.draw.rect(pantalla, C["acento"], (x, campo.centery - 18, PX, 36))
     texto_centrado(pantalla, "Escribí con el teclado  ·  Borrar: corregir", fuentes["chica"], C["texto"],
                    (ANCHO // 2, caja.y + 220))
     if nombre.strip():
@@ -100,57 +109,20 @@ def dibujar_elegir_gato(pantalla, fondo, fuentes, elegido, t):
             pantalla.blit(flecha, flecha.get_rect(midbottom=(x, 340 - salto)))
 
 
-def dibujar_instrucciones(pantalla, fondo, fuentes, imagen, punto, pellizco, grosor, t):
-    """Instrucciones: cómo poner la mano, una prueba en vivo del pellizco y del grosor del chorro."""
-    pantalla.blit(fondo, (0, 0))
-    dibujar_panel(pantalla, (24, 20, 912, 600))
-    titulo_con_sombra(pantalla, "¿Cómo se juega?", fuentes["grande"], (ANCHO // 2, 62))
-    rect_camara = pygame.Rect(POS_CAMARA_INSTRUCCIONES, TAM_CAMARA_INSTRUCCIONES)
-    dibujar_camara(pantalla, imagen, rect_camara, punto, pellizco, fuentes["chica"])
-    # indicador de la prueba de pellizco
-    estado = pygame.Rect(rect_camara.x, rect_camara.bottom + 16, rect_camara.width, 56)
-    if punto is None:
-        color, texto = C["sombra"], "No veo tu mano todavía"
-    elif pellizco:
-        color, texto = C["verde"], "¡Pellizco! Sale leche"
-    else:
-        color, texto = C["azul"], "Mano detectada: ahora pellizcá"
-    dibujar_panel(pantalla, estado, color, C["contorno"])
-    texto_centrado(pantalla, texto, fuentes["normal"], C["texto"], estado.center)
-    # prueba del grosor: acercá y alejá la mano y mirá cómo cambia la barra
-    y_barra = estado.bottom + 34
-    pantalla.blit(fuentes["chica"].render("Chorro:", False, C["texto"]), (rect_camara.x, y_barra - 4))
-    pantalla.blit(fuentes["chica"].render("fino", False, C["texto"]), (rect_camara.x + 84, y_barra - 4))
-    pantalla.blit(fuentes["chica"].render("grueso", False, C["texto"]), (rect_camara.right - 62, y_barra - 4))
-    dibujar_barra(pantalla, (rect_camara.x + 130, y_barra, rect_camara.width - 206, 16), grosor, C["leche"])
-    pasos = [
-        "1. Sentate a 50-80 cm de la cámara, con buena luz.",
-        "2. La punta del dedo índice mueve la jarra.",
-        "3. Pellizco (índice + pulgar): sale leche.",
-        "4. Mano cerca de la cámara: chorro grueso. Mano lejos: chorro fino, para los detalles.",
-        "5. Seguí el dibujo punteado: lo que cae afuera resta.",
-        "6. Cuidá la leche de la jarra y que no se enfríe el café.",
-        "5 rondas. Con 1 estrella pasás a la siguiente.",
-        "Esc: pausa  ·  F11: pantalla completa",
-    ]
-    y = 140
-    for paso in pasos:
-        y = texto_envuelto(pantalla, paso, fuentes["chica"], C["texto"], (468, y, 440, 200)) + 10
-    if parpadea(t):
-        texto_centrado(pantalla, "Enter o Espacio: ¡a competir!", fuentes["normal"], C["acento"], (688, 580))
-
-
 # ---------------------------------------------------------------- HUD de la ronda
-def dibujar_hud(pantalla, fuentes, numero_ronda, imagen, punto, pellizco, jurado, porcentaje,
-                fraccion_leche, fraccion_temperatura):
-    """Dibuja todo lo que rodea a la taza mientras jugás: título, cámara, jurado, % y barras."""
+def dibujar_hud(pantalla, fuentes, numero_ronda, imagen, dedos, pellizco, jurado, porcentaje,
+                fraccion_leche, fraccion_temperatura, servir):
+    """Dibuja todo lo que rodea a la taza mientras jugás: título, cámara, jurado, % y barras.
+
+    servir: None si todavía no se puede servir; si no, cuánto falta para servir (de 0 a 1).
+    """
     ronda = RONDAS[numero_ronda]
     caja = dibujar_panel(pantalla, RECT_TITULO_RONDA)
     texto_centrado(pantalla, f"Ronda {numero_ronda + 1}/{len(RONDAS)}: {ronda['nombre']}",
                    fuentes["normal"], C["texto"], caja.center)
     # cámara
     dibujar_panel(pantalla, RECT_PANEL_CAMARA)
-    dibujar_camara(pantalla, imagen, (POS_MINIATURA, TAM_MINIATURA), punto, pellizco, fuentes["chica"])
+    dibujar_camara(pantalla, imagen, (POS_MINIATURA, TAM_MINIATURA), dedos, pellizco, fuentes["chica"])
     # jurado con su globito (el globo se resalta en dorado cuando hace un comentario puntual)
     dibujar_panel(pantalla, RECT_PANEL_JURADO)
     jurado.dibujar(pantalla, POS_JURADO)
@@ -173,6 +145,13 @@ def dibujar_hud(pantalla, fuentes, numero_ronda, imagen, punto, pellizco, jurado
     else:
         color = C["azul"]
     dibujar_barra(pantalla, RECT_BARRA_TEMPERATURA, fraccion_temperatura, color)
+    # aviso para servir (abajo a la izquierda, sobre la mesa) con una barrita que se llena
+    if servir is not None:
+        aviso = dibujar_panel(pantalla, (16, 584, 330, 46))
+        if servir > 0:
+            dibujar_barra(pantalla, (aviso.x + 16, aviso.centery - 8, aviso.width - 32, 16), servir, C["verde"])
+        else:
+            texto_centrado(pantalla, "Para servir: sacá la jarra de la taza", fuentes["chica"], C["texto"], aviso.center)
 
 
 def dibujar_cuenta(pantalla, fuentes, segundos):
@@ -205,10 +184,16 @@ def dibujar_pausa(pantalla, fuentes):
 
 
 # ---------------------------------------------------------------- resultado y fin de partida
-def dibujar_resultado(pantalla, fondo, fuentes, numero_ronda, taza, jurado, estrellas_visibles, listo, t):
-    """Resultado de una ronda: la taza terminada, el %, las estrellas que van apareciendo y el jurado."""
+def dibujar_resultado(pantalla, fondo, fuentes, numero_ronda, taza, jurado, estrellas_visibles, listo, record, t):
+    """Resultado de una ronda: la taza terminada, el %, las estrellas que van apareciendo y el jurado.
+
+    record: True si esta taza es la mejor de su dibujo (entra a la galería).
+    """
     pantalla.blit(fondo, (0, 0))
     taza.dibujar(pantalla, con_guia=False)
+    if record:
+        cartel = dibujar_panel(pantalla, (150, 594, 360, 40), C["dorado"], C["brillo_dorado"])
+        texto_centrado(pantalla, "¡Récord! Tu taza entra a la galería", fuentes["chica"], C["texto"], cartel.center)
     panel = dibujar_panel(pantalla, (668, 12, 264, 616))
     texto_centrado(pantalla, RONDAS[numero_ronda]["nombre"], fuentes["grande"], C["texto"], (panel.centerx, 52))
     texto_centrado(pantalla, f"{taza.porcentaje}%", fuentes["titulo"], C["acento"], (panel.centerx, 120))
@@ -310,8 +295,37 @@ def dibujar_top(pantalla, fondo, fuentes, puntajes, resaltado, t):
         texto_centrado(pantalla, f"Quedaste en el puesto {resaltado + 1}. ¡La próxima entrás!", fuentes["chica"],
                        C["texto"], (ANCHO // 2, caja.bottom - 62))
     if parpadea(t):
-        texto_centrado(pantalla, "R: volver a jugar  ·  Esc: portada", fuentes["normal"], C["acento"],
+        texto_centrado(pantalla, "R o Esc: volver a la portada", fuentes["normal"], C["acento"],
                        (ANCHO // 2, caja.bottom - 30))
+
+
+def dibujar_galeria(pantalla, fondo, fuentes, datos, fotos, vacias, t):
+    """Galería de los mejores artes: la mejor taza de cada dibujo, con quién la hizo y su %.
+
+    datos: {dibujo: {"nombre", "porcentaje"}}  fotos: {dibujo: Surface}
+    vacias: {dibujo: Surface} con la taza sin leche, para los dibujos que todavía no tienen récord.
+    """
+    pantalla.blit(fondo, (0, 0))
+    titulo = dibujar_panel(pantalla, (230, 10, 500, 56))
+    titulo_con_sombra(pantalla, "Galería de los mejores artes", fuentes["normal"], titulo.center)
+    for i, ronda in enumerate(RONDAS):
+        # 3 marcos arriba y 2 abajo, centrados
+        fila, columna = (0, i) if i < 3 else (1, i - 3)
+        x = 90 + columna * 280 if fila == 0 else 230 + columna * 280
+        y = 80 + fila * 270
+        marco = dibujar_panel(pantalla, (x, y, 220, 256))
+        dibujo = ronda["dibujo"]
+        foto = fotos.get(dibujo, vacias[dibujo])
+        pantalla.blit(pygame.transform.scale(foto, (TAM_LIENZO, TAM_LIENZO)), (marco.centerx - TAM_LIENZO // 2, y + 12))
+        texto_centrado(pantalla, ronda["nombre"], fuentes["normal"], C["texto"], (marco.centerx, y + 170))
+        if dibujo in datos:
+            texto_centrado(pantalla, f"{datos[dibujo]['porcentaje']}%", fuentes["normal"], C["acento"],
+                           (marco.centerx, y + 200))
+            texto_centrado(pantalla, f"por {datos[dibujo]['nombre']}", fuentes["chica"], C["texto"], (marco.centerx, y + 230))
+        else:
+            texto_centrado(pantalla, "Todavía nadie", fuentes["chica"], C["texto"], (marco.centerx, y + 214))
+    if parpadea(t):
+        texto_centrado(pantalla, "R o Esc: volver a la portada", fuentes["normal"], C["acento"], (ANCHO // 2, 616))
 
 
 def dibujar_sin_camara(pantalla, fondo, fuentes, error):

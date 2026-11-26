@@ -8,7 +8,7 @@ Don Salmón te anotó en el concurso de latte art del barrio. **Tu mano es la ja
 
 ## Cómo se juega
 
-**Antes de empezar:** escribís tu nombre (va al top) y elegís el color de tu gatito, como en Purr & Brew. La jarra aparece agarrada por una patita de ese color.
+**Antes de empezar:** en la portada apretás **¡Empezar!**, escribís tu nombre (va al top) y elegís el color de tu gatito, como en Purr & Brew. La jarra aparece agarrada por una patita de ese color. Después Don Salmón te explica todo en un **tutorial de 6 páginas**, con dibujos y la cámara en vivo para probar cada gesto.
 
 **Objetivo:** pasar las 5 rondas del concurso y quedar lo más alto posible en el top. Los dibujos siguen el orden en que aprenden los baristas de verdad:
 1. **Corazón**: la base de todo.
@@ -19,16 +19,20 @@ Don Salmón te anotó en el concurso de latte art del barrio. **Tu mano es la ja
 
 **Qué hacer frente a la cámara:**
 - Sentate a unos 50-80 cm de la webcam y mostrá la palma de una mano.
-- La **punta del índice** mueve la jarra. En la miniatura de la cámara (arriba a la derecha) hay un recuadro punteado: es la zona útil, no hace falta llegar al borde del cuadro.
+- El **punto entre las puntas del índice y del pulgar** mueve la jarra. (Antes era la punta del índice, pero al pellizcar el índice baja y la jarra saltaba; con el punto del medio queda quieta.) En la miniatura de la cámara (arriba a la derecha) hay un recuadro punteado: es la zona útil, no hace falta llegar al borde del cuadro.
 - **Pellizco** (juntar índice y pulgar) = verter leche. Abrí los dedos para dejar de verter.
 - **Distancia a la cámara = altura de la jarra.** Como hacen los baristas: con la jarra baja la leche sale ancha; con la jarra alta, un hilito fino. Si acercás la mano a la cámara, la jarra baja y el chorro sale **grueso** (para rellenar). Si la alejás, sube y sale **fino** (para las capas finitas de la rosetta o el cuello del cisne). La mira de cuatro cuadraditos se abre o se cierra para mostrar qué tan ancho va a caer.
 
 **Don Salmón comenta en vivo:** es el jurado y reacciona a lo que pasa. Si derramás leche afuera se queja (cara de asco), si se está acabando la leche o se enfría el café se preocupa (gotita de sudor), si ganás una estrella salta y aplaude, y con 3 estrellas llora de emoción. Si te quedás quieto mucho rato te apura.
 
-**Puntaje:** el porcentaje mide cuánto del dibujo cubriste con espuma, menos una penalización por la leche que cae afuera del dibujo.
+**Puntaje:** el porcentaje mide cuánto del dibujo cubriste con espuma, menos una penalización por la leche que cae afuera del dibujo. Un borde finito alrededor del dibujo no resta, así que **se puede llegar al 100%**.
 - 1 estrella (40%): pasás la ronda.
-- 2 estrellas (60%): bien.
-- 3 estrellas (80%): Don Salmón llora de emoción. Si llegás a 3 estrellas y dejás de verter un ratito, la taza se sirve sola.
+- 2 estrellas (65%): bien.
+- 3 estrellas (85%): Don Salmón llora de emoción.
+
+**Servir:** cuando tu taza ya vale al menos 1 estrella, sacá la jarra de la taza (afuera del plato) sin verter y quedate así un segundo y medio: la taza se sirve. Con 100% se sirve sola.
+
+**Galería:** la mejor taza de cada dibujo se guarda con una foto y el nombre de quien la hizo (carpeta `galeria/`). Se ve desde la portada con el botón **Galería** o la tecla **G**.
 
 **Top:** al terminar (ganes o pierdas) tu partida se anota en el top con tu nombre y tu gatito. Los puntos son la suma de los porcentajes de todas las rondas que jugaste (máximo 500). El top se guarda en `puntajes.json`, así que queda guardado aunque cierres el juego.
 
@@ -46,20 +50,22 @@ Si la cámara no abre al iniciar, aparece una pantalla que explica qué revisar 
 |---|---|
 | Dedo índice frente a la cámara | Mover la jarra |
 | Pellizco (índice + pulgar) | Verter leche |
+| Mouse | Botones de la portada, del tutorial y el de pantalla completa (arriba a la izquierda) |
 | Enter / Espacio | Avanzar en los menús |
 | Teclado | Escribir tu nombre (Borrar corrige) |
 | Flechas izquierda / derecha | Elegir el color del gatito |
 | Esc | Pausar y seguir (en la pantalla de "sin cámara", cierra) |
 | R | Volver a jugar desde la victoria, la derrota o el top (también desde la pausa) sin cerrar la ventana |
-| T | Ver el top desde la portada |
-| F11 | Pantalla completa (y volver a ventana) |
+| Flechas en el tutorial | Página anterior / siguiente (Esc lo saltea) |
+| T / G | Ver el top / la galería desde la portada |
+| F11 o el botón de arriba a la izquierda | Pantalla completa (y volver a ventana) |
 | M / N | Música on/off / Sonidos on/off |
 | X de la ventana | Cerrar el juego (libera la cámara) |
 
 ### Estados del juego
 
-`PORTADA → NOMBRE → ELEGIR_GATO → INSTRUCCIONES (prueba del pellizco) → JUGANDO (rondas 1 a 5) → RESULTADO_RONDA → … → VICTORIA → TOP`
-Desde `JUGANDO` se puede ir a `DERROTA` (y de ahí al `TOP`). Con **R** se vuelve a la `PORTADA`. Dentro de `JUGANDO` hay una cuenta regresiva de 3 segundos, la pausa (Esc) y la pausa automática sin mano.
+`PORTADA → NOMBRE → ELEGIR_GATO → TUTORIAL → JUGANDO (rondas 1 a 5) → RESULTADO_RONDA → … → VICTORIA → TOP`
+Desde `JUGANDO` se puede ir a `DERROTA` (y de ahí al `TOP`). Desde la `PORTADA` también se va al `TOP` y a la `GALERIA`. Con **R** o **Esc** se vuelve a la `PORTADA`. Entre pantallas hay una transición (se oscurece y se aclara). Dentro de `JUGANDO` hay una cuenta regresiva de 3 segundos, la pausa (Esc) y la pausa automática sin mano.
 
 ## Instalación y ejecución (Windows, Python 3.12)
 
@@ -103,15 +109,17 @@ Si aparece un error con `cv2`, puede ser que estén instalados `opencv-python` y
 
 | Archivo | Qué tiene |
 |---|---|
-| `main.py` | Clase `Juego`: carga todo una sola vez, bucle principal (eventos, actualizar, dibujar, `reloj.tick`), máquina de estados, nombre, elección del gato, rondas, avisos en vivo para Don Salmón, pantalla completa, sonido del chorro y cierre con `cap.release()`. Funciones `camara_a_pantalla`, `suavizar` y `grosor_segun_mano`. |
+| `main.py` | Clase `Juego`: carga todo una sola vez, bucle principal (eventos, actualizar, dibujar, `reloj.tick`), máquina de estados con transiciones, mouse, nombre, elección del gato, rondas, servir, galería, avisos en vivo para Don Salmón, pantalla completa, sonido del chorro y cierre con `cap.release()`. Funciones `camara_a_pantalla`, `suavizar` y `grosor_segun_mano`. |
 | `ajustes.py` | Todas las constantes: colores, tamaños, velocidades, umbrales del pellizco, suavizado, tiempos, leche por ronda, umbrales de las estrellas y textos. |
-| `vision.py` | Todo lo de OpenCV y MediaPipe, en la clase `Camara`: abrir la cámara, leer y espejar el cuadro (`flip`), detectar la mano (`detectar()` devuelve `(x, y)` o `None`), `hay_pellizco()`, `tamano_mano()` (cerca o lejos), la miniatura pixelada y `liberar()`. |
+| `vision.py` | Todo lo de OpenCV y MediaPipe, en la clase `Camara`: abrir la cámara, leer y espejar el cuadro (`flip`), detectar la mano (`detectar()` devuelve `(x, y)` o `None`), `hay_pellizco()`, `tamano_mano()` (cerca o lejos), `puntas_dedos()`, la miniatura y `liberar()`. |
 | `latte.py` | Clase `Taza`: el café, los 5 dibujos hechos con figuras en código, la máscara del dibujo, la leche vertida y el puntaje. Función `calcular_estrellas`. |
 | `particulas.py` | Clase `Particula` (gota de leche que cae y se abre en espuma, más o menos según el grosor) y las funciones `segun_grosor`, `crear_gotas` y `actualizar_particulas` (la lista que cambia). |
 | `jurado.py` | Clase `Jurado` (Don Salmón): su cara según el %, los comentarios en vivo (globito) y las animaciones de cada cara (respira, salta y aplaude, suda, olorcitos, llora). |
 | `puntajes.py` | El top: lee y guarda los puntajes en `puntajes.json` (con el módulo `json` de Python). |
+| `galeria.py` | La galería: guarda la foto de la mejor taza de cada dibujo (`galeria/*.png`) y quién la hizo (`galeria/galeria.json`). |
+| `tutorial.py` | Clase `Tutorial`: las 6 páginas de Don Salmón, cada una con su ilustración (algunas con la cámara en vivo). |
 | `dibujo.py` | Pixel art y piezas de interfaz: `pixelar`, paneles, textos, barras, estrellas, la jarra con la patita, los gatos de Purr & Brew con sus caras, los fondos y la miniatura de la cámara. |
-| `escenas.py` | Qué se dibuja en cada estado: portada, nombre, elegir gato, instrucciones, HUD, cuenta regresiva, "¡Mostrá la pata!", pausa, resultado, victoria, derrota, top y aviso de cámara. |
+| `escenas.py` | Qué se dibuja en cada estado: portada (con botones y el saludo de Don Salmón), nombre, elegir gato, HUD, cuenta regresiva, "¡Mostrá la pata!", pausa, resultado, victoria, derrota, top, galería y aviso de cámara. |
 | `generar_sonidos.py` | Crea todos los `.wav` con matemática (ondas seno, ruido y envolventes). |
 | `prueba_camara.py` | Prueba suelta de la cámara: muestra el punto del dedo, si hay pellizco y el tamaño de la mano. |
 
@@ -136,4 +144,5 @@ Si aparece un error con `cv2`, puede ser que estén instalados `opencv-python` y
   4. "Trabajá por etapas y al final de cada una decime qué commit hago y con qué mensaje."
   5. "Que haya un top al final y que tengas que poner tu nombre; poder elegir el color del gatito y que la jarra tenga una patita de ese color; Don Salmón más lindo, como en Purr & Brew, y que reaccione en vivo; dibujos como los que hacen los baristas de verdad; pantalla completa." (segunda versión)
   6. "Altura de la jarra con la distancia de la mano: cerca = chorro grueso, lejos = chorro fino." (tercera versión)
+  7. "Mejorar la perspectiva cuando pellizcás, botón de pantalla completa, más leche para poder llegar al 100%, galería de los mejores artes, botón de inicio con transición y un tutorial más explicado, como el de Purr & Brew." (cuarta versión)
 - **Cita (APA):** Claude. (2026). *Prompts utilizados para la programación del juego Purr & Brew: Latte Art* [Generación de código]. Anthropic. Recuperado de https://claude.ai
