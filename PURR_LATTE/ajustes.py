@@ -66,6 +66,8 @@ COLORES = {
     "cortina": (126, 182, 170),
     "cielo": (176, 212, 238),
     "cielo_claro": (212, 233, 242),
+    "cielo_arriba": (150, 196, 236),  # degradado del cielo de la ventana: arriba más celeste...
+    "cielo_horizonte": (250, 226, 200),  # ...y abajo un durazno suave, como de mañanita
     "sol": (255, 240, 190),
     "nube": (255, 250, 245),
     "lampara": (255, 220, 120),

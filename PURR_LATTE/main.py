@@ -810,7 +810,7 @@ class Juego:
                                     self.galeria_fotos, self.tazas_vacias, self.records_partida,
                                     self.galeria_desde_final, self.t)
         elif self.estado == SIN_CAMARA:
-            escenas.dibujar_sin_camara(self.pantalla, self.fondo_cafeteria, self.fuentes, self.camara.error)
+            escenas.dibujar_sin_camara(self.pantalla, self.fondo_cafeteria, self.fuentes, self.camara.error, self.t)
         if self.boton_pantalla_visible():
             boton = pygame.Rect(RECT_BOTON_PANTALLA)
             dibujar_boton_pantalla_completa(self.pantalla, boton, boton.collidepoint(mouse))

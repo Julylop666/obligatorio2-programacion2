@@ -390,6 +390,25 @@ def dibujar_gato(pantalla, pie, pelaje, px, cara="neutral", ojos=COLOR_OJOS_BARI
 
 
 # ---------------------------------------------------------------- adornos de la portada
+def pintar_cielo(superficie, rect):
+    """Pinta un cielo pixel art: 4 franjas de color (de celeste a durazno) y, entre franja y
+    franja, dos filas de "tramado" (pixeles alternados como un tablero de ajedrez) que hacen
+    que el cambio se vea suave sin dejar de ser pixel art.
+    """
+    x, y, ancho, alto = rect
+    colores = [C["cielo_arriba"], C["cielo"], C["cielo_claro"], C["cielo_horizonte"]]
+    alto_franja = alto / len(colores)
+    for fila in range(alto):
+        franja = min(len(colores) - 1, int(fila / alto_franja))
+        # ¿estoy en las 2 últimas filas de la franja? Ahí va el tramado con el color de abajo
+        en_borde = franja < len(colores) - 1 and fila >= (franja + 1) * alto_franja - 2
+        for columna in range(ancho):
+            color = colores[franja]
+            if en_borde and (columna + fila) % 2 == 0:
+                color = colores[franja + 1]
+            superficie.set_at((x + columna, y + fila), color)
+
+
 def crear_cafetera():
     """Arma y devuelve la cafetera espresso de la barra (pixel art), agrandada PX veces."""
     chica = pygame.Surface((30, 28), pygame.SRCALPHA)
@@ -429,6 +448,56 @@ def dibujar_banderines(pantalla, y, t):
         punta = (x + 16 + vaiven, y + 34)
         pygame.draw.polygon(pantalla, C["contorno"], [(x - 2, y), (x + 34, y), (punta[0], punta[1] + 3)])
         pygame.draw.polygon(pantalla, colores[i % len(colores)], [(x + 2, y + 2), (x + 30, y + 2), punta])
+
+
+def dibujar_ventana_abierta(pantalla, t):
+    """Dibuja (encima del fondo) la ventana de la cafetería abierta, con las nubes pasando
+    despacito y las cortinas que se mueven apenas con el viento. Va en todas las pantallas
+    con el fondo de la cafetería.
+
+    Se dibuja en chiquito (pixeles del arte) en cada cuadro y después se agranda: así las
+    cortinas se mueven "de a pixel", como pixel art.
+    """
+    ancho, alto = 60, 52
+    origen = (4, 34)                              # dónde va, en pixeles del arte de la pantalla
+    chica = pygame.Surface((ancho, alto))
+    # 1) pared con las rayas del papel tapiz (el pedacito de pared que queda alrededor)
+    chica.fill(C["pared"])
+    for x in range(0, 64, 8):
+        pygame.draw.rect(chica, C["papel_rayas"], (x - origen[0], 0, 2, alto))
+    # 2) el hueco de la ventana: cielo, sol y dos nubes que cruzan muy despacio
+    pygame.draw.rect(chica, C["contorno"], (6, 6, 44, 40))
+    pintar_cielo(chica, (8, 8, 40, 36))
+    pygame.draw.circle(chica, C["sol"], (29, 19), 6)
+    for i, y in enumerate((14, 32)):
+        x = 8 + int(t * 2 + i * 22) % 48 - 6        # avanza y, cuando sale por un lado, entra por el otro
+        recorte = chica.get_clip()
+        chica.set_clip((8, 8, 40, 36))            # que las nubes no se salgan del vidrio
+        pygame.draw.rect(chica, C["nube"], (x, y, 10, 3))
+        pygame.draw.rect(chica, C["nube"], (x + 2, y - 2, 5, 2))
+        chica.set_clip(recorte)
+    # 3) las dos hojas de vidrio abiertas hacia adentro, contra los costados del marco.
+    #    Se ven enteras (de arriba a abajo) y angostitas, porque están de costado: así se
+    #    entiende que la ventana está abierta y en el medio no hay vidrio, solo cielo.
+    for x, adentro in ((8, 1), (40, -1)):
+        pygame.draw.rect(chica, C["blanco"], (x, 8, 8, 36))                  # marco de la hoja
+        pygame.draw.rect(chica, C["cielo_claro"], (x + 1, 9, 6, 34))          # vidrio
+        pygame.draw.line(chica, C["blanco"], (x + 1, 26), (x + 6, 26))        # travesaño
+        # brillo del vidrio (una rayita en diagonal) y una sombrita del lado de adentro
+        pygame.draw.line(chica, C["blanco"], (x + 2, 14), (x + 4, 11))
+        pygame.draw.line(chica, C["blanco"], (x + 2, 34), (x + 4, 31))
+        borde_sombra = x + 7 if adentro == 1 else x
+        pygame.draw.line(chica, C["papel_rayas"], (borde_sombra, 8), (borde_sombra, 43))
+    # 4) cortinas afuera del marco: arriba quedan fijas en el barral y abajo se mecen poquito.
+    #    Las dos se corren JUNTAS para el mismo lado, como cuando entra una brisa.
+    vaiven = round(math.sin(t * 1.6) * 1.6)        # entre -2 y 2 pixeles: poquito
+    for borde in (0, 50):
+        forma = [(borde, 4), (borde + 6, 4), (borde + 6 + vaiven, 48), (borde + vaiven, 48)]
+        pygame.draw.polygon(chica, C["cortina"], forma)
+        pygame.draw.line(chica, oscurecer(C["cortina"], 0.85), (borde + 3, 5), (borde + 3 + vaiven, 47))
+    # 5) el barral de madera arriba
+    pygame.draw.rect(chica, C["madera_oscura"], (0, 2, 58, 3))
+    pantalla.blit(pygame.transform.scale(chica, (ancho * PX, alto * PX)), (origen[0] * PX, origen[1] * PX))
 
 
 def dibujar_vapor(pantalla, centro_x, base_y, t):
@@ -485,7 +554,8 @@ def crear_fondo_mesa():
 
 def crear_fondo_cafeteria():
     """Arma y devuelve el fondo de los menús: el interior de la cafetería de Don Salmón
-    (papel tapiz, ventana con sol, estantes con tacitas, lámparas, pizarrón y la barra).
+    (papel tapiz, estantes con tacitas, lámparas, pizarrón y la barra). La ventana se dibuja
+    aparte, encima, porque tiene las cortinas moviéndose.
     """
     ancho, alto = ANCHO // PX, ALTO // PX
     chica = pygame.Surface((ancho, alto))
@@ -496,19 +566,7 @@ def crear_fondo_cafeteria():
     pygame.draw.rect(chica, C["zocalo"], (0, 94, ancho, 3))
     for x in range(6, ancho, 16):
         pygame.draw.rect(chica, oscurecer(C["madera_oscura"], 0.85), (x, 100, 10, 16), 1)
-    # ventana con sol, nubes y cortinas (a la izquierda)
-    pygame.draw.rect(chica, C["contorno"], (10, 40, 44, 40))
-    pygame.draw.rect(chica, C["cielo"], (12, 42, 40, 36))
-    pygame.draw.rect(chica, C["cielo_claro"], (12, 62, 40, 16))
-    pygame.draw.circle(chica, C["sol"], (40, 54), 6)
-    for x, y in ((14, 48), (28, 66)):
-        pygame.draw.rect(chica, C["nube"], (x, y, 10, 3))
-        pygame.draw.rect(chica, C["nube"], (x + 2, y - 2, 5, 2))
-    pygame.draw.line(chica, C["blanco"], (32, 42), (32, 77))
-    pygame.draw.line(chica, C["blanco"], (12, 60), (51, 60))
-    pygame.draw.rect(chica, C["cortina"], (8, 38, 6, 44))
-    pygame.draw.rect(chica, C["cortina"], (50, 38, 6, 44))
-    pygame.draw.rect(chica, C["madera_oscura"], (6, 36, 52, 3))
+    # (la ventana no va acá: se dibuja aparte, animada, con dibujar_ventana_abierta)
     # estantes con tacitas (a la derecha)
     colores = (C["taza"], C["menta"], C["azul"], C["dorado"])
     for repisa in (48, 70):

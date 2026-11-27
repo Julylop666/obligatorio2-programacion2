@@ -16,6 +16,7 @@ from ajustes import (COLORES as C, ANCHO, PX, RONDAS, UMBRALES_ESTRELLAS, RECT_T
 from dibujo import (dibujar_panel, texto_centrado, texto_envuelto, dibujar_barra, dibujar_fila_estrellas,
                     dibujar_camara, dibujar_jarra, dibujar_boton)
 from latte import Taza
+from escenas import dibujar_fondo_cafeteria
 
 
 # ---------------------------------------------------------------- piezas chiquitas para los dibujos
@@ -292,7 +293,7 @@ class Tutorial:
         """
         titulo, texto, ilustracion = PAGINAS[self.pagina]
         vivo["taza_ejemplo"] = self.taza_ejemplo
-        pantalla.blit(fondo, (0, 0))
+        dibujar_fondo_cafeteria(pantalla, fondo, t)
         caja = dibujar_panel(pantalla, (300, 8, 360, 50))
         texto_centrado(pantalla, titulo, fuentes["normal"], C["texto"], caja.center)
         dibujar_panel(pantalla, (24, 64, 912, 568))

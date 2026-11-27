@@ -14,11 +14,21 @@ from ajustes import (COLORES as C, ANCHO, PX, RONDAS, COLOR_VELO, RECT_PANEL_CAM
                      SALUDO_DON_SALMON, CENTRO_TAZA_PORTADA, RADIO_TAZA_PORTADA)
 from dibujo import (dibujar_panel, texto_centrado, texto_envuelto, dibujar_barra, dibujar_fila_estrellas,
                     dibujar_estrella, dibujar_velo, dibujar_camara, dibujar_gato, pixelar, dibujar_boton,
-                    dibujar_banderines, dibujar_vapor)
+                    dibujar_banderines, dibujar_vapor, dibujar_ventana_abierta)
 from latte import calcular_estrellas
 
 CENTRO_TAZA = (POS_LIENZO[0] + TAM_LIENZO * PX // 2, POS_LIENZO[1] + TAM_LIENZO * PX // 2)
 _FLECHA = ("OOOOOOO", ".OYYYO.", "..OYO..", "...O...")
+
+
+def dibujar_fondo_cafeteria(pantalla, fondo, t):
+    """Dibuja el fondo de la cafetería con la ventana abierta y las cortinas moviéndose.
+
+    El fondo es una imagen fija (se arma una sola vez); la ventana va aparte porque se mueve.
+    Todas las pantallas con la cafetería usan esta función, así la ventana es siempre la misma.
+    """
+    pantalla.blit(fondo, (0, 0))
+    dibujar_ventana_abierta(pantalla, t)
 
 
 def titulo_con_sombra(pantalla, texto, fuente, centro):
@@ -53,7 +63,7 @@ def dibujar_portada(pantalla, fondo, fuentes, taza_muestra, cafetera, jurado, pe
     """Portada: banderines del concurso, el título, la taza humeante (que también es un botón),
     la cafetera, tu gato, Don Salmón saludando y los botones. mouse: posición del mouse.
     """
-    pantalla.blit(fondo, (0, 0))
+    dibujar_fondo_cafeteria(pantalla, fondo, t)
     dibujar_banderines(pantalla, 0, t)
     panel = dibujar_panel(pantalla, (240, 20, 480, 140))
     titulo_con_sombra(pantalla, "Purr & Brew", fuentes["titulo"], (ANCHO // 2, panel.y + 52))
@@ -89,7 +99,7 @@ def mouse_sobre_taza(mouse):
 
 def dibujar_nombre(pantalla, fondo, fuentes, nombre, jurado, t):
     """Pantalla para escribir el nombre con el teclado (va a aparecer en el top)."""
-    pantalla.blit(fondo, (0, 0))
+    dibujar_fondo_cafeteria(pantalla, fondo, t)
     caja = dibujar_panel(pantalla, (180, 60, 600, 300))
     titulo_con_sombra(pantalla, "¿Cómo te llamás?", fuentes["grande"], (ANCHO // 2, caja.y + 52))
     texto_centrado(pantalla, "Don Salmón te anota en la planilla del concurso.", fuentes["chica"], C["texto"],
@@ -110,7 +120,7 @@ def dibujar_nombre(pantalla, fondo, fuentes, nombre, jurado, t):
 
 def dibujar_elegir_gato(pantalla, fondo, fuentes, elegido, t):
     """Pantalla para elegir el color del gatito (como en Purr & Brew). Se elige con las flechas."""
-    pantalla.blit(fondo, (0, 0))
+    dibujar_fondo_cafeteria(pantalla, fondo, t)
     caja = dibujar_panel(pantalla, (60, 24, 840, 96))
     titulo_con_sombra(pantalla, "Elegí tu gatito", fuentes["grande"], (ANCHO // 2, caja.y + 38))
     texto_centrado(pantalla, "Flechas izquierda y derecha para elegir  ·  Enter para confirmar", fuentes["chica"],
@@ -288,7 +298,7 @@ _TROFEO = (
 
 def dibujar_victoria(pantalla, fondo, fuentes, estrellas_por_ronda, puntos, jurado, pelaje, t):
     """Pantalla de victoria: trofeo, estrellas de cada ronda, los puntos y los dos gatos festejando."""
-    pantalla.blit(fondo, (0, 0))
+    dibujar_fondo_cafeteria(pantalla, fondo, t)
     caja = dibujar_panel(pantalla, (120, 20, 720, 600))
     titulo_con_sombra(pantalla, "¡Ganaste el concurso!", fuentes["titulo"], (ANCHO // 2, 74))
     texto_centrado(pantalla, f"{puntos} puntos  ·  {sum(estrellas_por_ronda)} de {len(RONDAS) * 3} estrellas",
@@ -331,7 +341,7 @@ def dibujar_top(pantalla, fondo, fuentes, puntajes, resaltado, t):
 
     resaltado: el puesto (0 = primero) de la partida que acaba de terminar, o None.
     """
-    pantalla.blit(fondo, (0, 0))
+    dibujar_fondo_cafeteria(pantalla, fondo, t)
     caja = dibujar_panel(pantalla, (150, 16, 660, 608))
     titulo_con_sombra(pantalla, "Top del concurso", fuentes["grande"], (ANCHO // 2, 58))
     if not puntajes:
@@ -366,7 +376,7 @@ def dibujar_galeria(pantalla, fondo, fuentes, datos, fotos, vacias, nuevos, desd
     nuevos: los dibujos en los que batiste el récord en esta partida (se marcan en dorado).
     desde_final: True si llegaste acá al terminar una partida (después sigue el top).
     """
-    pantalla.blit(fondo, (0, 0))
+    dibujar_fondo_cafeteria(pantalla, fondo, t)
     titulo = dibujar_panel(pantalla, (230, 10, 500, 56))
     titulo_con_sombra(pantalla, "Galería de los mejores artes", fuentes["normal"], titulo.center)
     for i, ronda in enumerate(RONDAS):
@@ -395,9 +405,9 @@ def dibujar_galeria(pantalla, fondo, fuentes, datos, fotos, vacias, nuevos, desd
         texto_centrado(pantalla, texto, fuentes["normal"], C["acento"], (ANCHO // 2, 620))
 
 
-def dibujar_sin_camara(pantalla, fondo, fuentes, error):
+def dibujar_sin_camara(pantalla, fondo, fuentes, error, t):
     """Aviso claro cuando la cámara (o MediaPipe) no anda: el juego no se rompe, explica qué hacer."""
-    pantalla.blit(fondo, (0, 0))
+    dibujar_fondo_cafeteria(pantalla, fondo, t)
     caja = dibujar_panel(pantalla, (120, 80, 720, 440))
     titulo_con_sombra(pantalla, "No encuentro la cámara", fuentes["grande"], (ANCHO // 2, caja.y + 56))
     texto_centrado(pantalla, error, fuentes["normal"], C["acento"], (ANCHO // 2, caja.y + 112))
