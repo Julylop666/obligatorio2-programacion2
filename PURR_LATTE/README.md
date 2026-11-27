@@ -4,7 +4,7 @@ Juego en **pixel art** hecho con Python, pygame, OpenCV y MediaPipe para Program
 
 Don Salmón te anotó en el concurso de latte art del barrio. **Tu mano es la jarrita de leche**: la cámara sigue la punta de tu dedo índice y, cuando juntás el índice con el pulgar (pellizco), sale leche. Tenés que verter siguiendo el dibujo punteado que aparece sobre el café. Sin cámara no se puede jugar: la cámara *es* el gesto de verter.
 
-**Repositorio en GitHub:** _(pegar acá el link del repo)_
+**Repositorio en GitHub:** https://github.com/Julylop666/obligatorio2-programacion2
 
 ## Cómo se juega
 
