@@ -6,7 +6,7 @@ Estas funciones solo DIBUJAN: no cambian nada del juego. Reciben lo que necesita
 """
 import math
 import pygame
-from ajustes import (COLORES as C, ANCHO, PX, RONDAS, COLOR_VELO, RECT_PANEL_CAMARA, RECT_PANEL_JURADO,
+from ajustes import (COLORES as C, ANCHO, PX, ALTO as ALTO_PANTALLA, RONDAS, COLOR_VELO, RECT_PANEL_CAMARA, RECT_PANEL_JURADO,
                      RECT_GLOBO, RECT_PANEL_PUNTAJE, RECT_TITULO_RONDA, RECT_BARRA_LECHE,
                      RECT_BARRA_TEMPERATURA, TAM_MINIATURA, POS_MINIATURA, POS_JURADO, PELAJES,
                      MOTIVOS_DERROTA, POS_LIENZO, TAM_LIENZO, UMBRALES_ESTRELLAS, CANTIDAD_TOP,
@@ -296,6 +296,21 @@ _TROFEO = (
 )
 
 
+def dibujar_confeti(pantalla, t):
+    """Dibuja papelitos de colores cayendo por toda la pantalla (para festejar la victoria).
+
+    No hace falta una lista: la posición de cada papelito sale de su número y del tiempo t.
+    Cuando un papelito llega abajo, el % lo hace volver a aparecer arriba.
+    """
+    colores = (C["dorado"], C["menta"], C["azul"], C["rojo_suave"], C["verde"], C["blanco"])
+    for i in range(60):
+        x = (i * 97 + math.sin(t * 2 + i) * 18) % ANCHO
+        y = (i * 53 + t * (60 + (i % 5) * 18)) % (ALTO_PANTALLA + 20) - 20
+        # los papelitos "giran": a veces se ven anchos y a veces finitos
+        ancho = PX * 3 if int(t * 6 + i) % 2 == 0 else PX
+        pygame.draw.rect(pantalla, colores[i % len(colores)], (int(x) // PX * PX, int(y) // PX * PX, ancho, PX * 3))
+
+
 def dibujar_victoria(pantalla, fondo, fuentes, estrellas_por_ronda, puntos, jurado, pelaje, t):
     """Pantalla de victoria: trofeo, estrellas de cada ronda, los puntos y los dos gatos festejando."""
     dibujar_fondo_cafeteria(pantalla, fondo, t)
@@ -312,6 +327,7 @@ def dibujar_victoria(pantalla, fondo, fuentes, estrellas_por_ronda, puntos, jura
     pantalla.blit(trofeo, trofeo.get_rect(center=(690, 250 + round(math.sin(t * 3) * 6))))
     dibujar_gato(pantalla, (320, 530), pelaje, 7, "contento", delantal=True)
     jurado.dibujar(pantalla, (640, 530), 7)
+    dibujar_confeti(pantalla, t)
     if parpadea(t):
         texto_centrado(pantalla, "Enter: ver la galería", fuentes["normal"], C["acento"], (ANCHO // 2, caja.bottom - 34))
 
