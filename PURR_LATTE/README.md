@@ -137,14 +137,3 @@ Si aparece un error con `cv2`, puede ser que estén instalados `opencv-python` y
 
 - **Herramienta:** Claude (Anthropic), modelo Claude Opus 5.5, en claude.ai.
 - **Para qué la usé:** para programar el juego por etapas a partir de mi documento de contexto (idea, reglas, estética y estados que definí yo); para comparar qué versión de MediaPipe funciona con Python 3.12 en Windows; para generar los sonidos por código; para revisar docstrings y comentarios, y para el borrador de este README. El diseño del juego, la estética (heredada de mi juego anterior) y las decisiones de reglas son mías. Revisé el código y puedo explicarlo.
-- **Prompts más relevantes:**
-  1. "Leé el contexto del proyecto (contexto.md), la consigna del Obligatorio 2 (PDF) y mi juego anterior Purr & Brew (zip) para copiar su estética, paleta y forma de organizar el código. Después programá el juego completo 'Purr & Brew: Latte Art' según TODO lo definido en el contexto."
-  2. "Puntaje: dibujá el contorno guía en una máscara (Surface o grilla) y pintá la leche vertida en otra. % = celdas del dibujo cubiertas / total del dibujo − penalización por celdas fuera. Mantenelo simple y explicable."
-  3. "MediaPipe: verificá qué API funciona con Python 3.12 en Windows. Las versiones nuevas pueden no tener mp.solutions. Elegí una opción estable y explicame la elección en el README."
-  4. "Trabajá por etapas y al final de cada una decime qué commit hago y con qué mensaje."
-  5. "Que haya un top al final y que tengas que poner tu nombre; poder elegir el color del gatito y que la jarra tenga una patita de ese color; Don Salmón más lindo, como en Purr & Brew, y que reaccione en vivo; dibujos como los que hacen los baristas de verdad; pantalla completa." (segunda versión)
-  6. "Altura de la jarra con la distancia de la mano: cerca = chorro grueso, lejos = chorro fino." (tercera versión)
-  7. "Mejorar la perspectiva cuando pellizcás, botón de pantalla completa, más leche para poder llegar al 100%, galería de los mejores artes, botón de inicio con transición y un tutorial más explicado, como el de Purr & Brew." (cuarta versión)
-  8. "Que la taza de la portada también sea el botón de empezar, que al final vaya siempre a la galería, una portada más linda y una patita que se entienda." (quinta versión)
-  9. "Pausa con la P, con volumen de la música y de los sonidos por separado; Don Salmón saludando con la mano en la portada." (sexta versión)
-- **Cita (APA):** Claude. (2026). *Prompts utilizados para la programación del juego Purr & Brew: Latte Art* [Generación de código]. Anthropic. Recuperado de https://claude.ai
