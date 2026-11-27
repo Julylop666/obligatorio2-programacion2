@@ -162,25 +162,14 @@ class Jurado:
             pantalla.blit(patita, (rect.x + columna * px, rect.y + 10 * px))
 
     def dibujar_saludo(self, pantalla, rect, paleta, px):
-        """La patita levantada al costado de la cara, moviéndose de un lado al otro (¡hola!).
-
-        El bracito sale del hombro hacia afuera y sube hasta la patita, con forma de L (como un codo).
-        """
+        """La patita pegadita al cuerpo, a la altura del hombro, moviéndose de un lado al otro (¡hola!)."""
         patita = pixelar(_PATITA, paleta, px)
-        # la patita se mueve de un lado al otro unas 3 veces por segundo
+        # la patita se mueve un pixel para afuera y para arriba, y vuelve (unas 3 veces por segundo)
         lado = 1 if math.sin(self.tiempo * 9) > 0 else 0
-        x = rect.x - 6 * px + lado * px
-        y = rect.y + 5 * px                       # a la altura de la cara
-        borde, pelo = paleta["O"], paleta["F"]
-        codo_x = rect.x - 5 * px                  # donde el brazo dobla para subir
-        hombro_y = rect.y + 11 * px               # a la altura de los hombros
-        # tramo que sube (del codo a la patita) y tramo que va del codo al hombro
-        pygame.draw.rect(pantalla, borde, (codo_x, y + 3 * px, 3 * px, hombro_y - y))
-        pygame.draw.rect(pantalla, borde, (codo_x, hombro_y, rect.x + 4 * px - codo_x, 3 * px))
-        pygame.draw.rect(pantalla, pelo, (codo_x + px, y + 3 * px, px, hombro_y - y))
-        pygame.draw.rect(pantalla, pelo, (codo_x + px, hombro_y + px, rect.x + 3 * px - codo_x, px))
+        x = rect.x + 1 * px - lado * px
+        y = rect.y + 8 * px - lado * px
         pantalla.blit(patita, (x, y))
-        # rayitas de movimiento del otro lado de la patita
+        # rayitas de movimiento al costado de la patita
         for i in range(2):
             pygame.draw.rect(pantalla, C["texto"], (x - 2 * px, y + i * 2 * px, px, px))
 
